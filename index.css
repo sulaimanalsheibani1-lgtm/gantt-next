@@ -1,0 +1,1457 @@
+<!DOCTYPE html>
+<html lang="en-AU">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Fast, accessible Gantt chart for project management">
+    <title>Gantt Next</title>
+    <style>
+        /* Reset & Base */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        :root {
+            /* Spacing */
+            --s-4: 4px; --s-8: 8px; --s-12: 12px; --s-16: 16px;
+            --s-20: 20px; --s-24: 24px; --s-32: 32px; --s-40: 40px;
+            
+            /* Colours - Light */
+            --text: #1f2937;
+            --text-muted: #6b7280;
+            --bg: #f8fafc;
+            --surface: #ffffff;
+            --border: #e5e7eb;
+            --primary: #0b5bd3;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --success: #10b981;
+            --non-working: #f3f4f6;
+            --weekend: #eef2ff;
+            --baseline-bar: #94a3b8;
+            --critical-bar: #ef4444;
+            --selection: #93c5fd;
+            
+            /* Typography */
+            --h1: 18px; --h2: 16px; --h3: 14px;
+            --body: 13px; --small: 12px;
+            
+            /* Radius */
+            --r-input: 8px; --r-dialog: 12px;
+        }
+        
+        [data-theme="dark"] {
+            --text: #f9fafb;
+            --text-muted: #9ca3af;
+            --bg: #0f172a;
+            --surface: #1e293b;
+            --border: #334155;
+            --non-working: #1e293b;
+            --weekend: #1e293b;
+        }
+        
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            font-size: var(--body);
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+        }
+        
+        /* Layout */
+        .app {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        /* Header */
+        .header {
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            padding: var(--s-12) var(--s-16);
+            display: flex;
+            align-items: center;
+            gap: var(--s-16);
+            flex-shrink: 0;
+        }
+        
+        .header h1 {
+            font-size: var(--h2);
+            font-weight: 600;
+        }
+        
+        .header-actions {
+            margin-left: auto;
+            display: flex;
+            gap: var(--s-8);
+        }
+        
+        /* Tabs */
+        .tabs {
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            gap: var(--s-4);
+            padding: 0 var(--s-16);
+            flex-shrink: 0;
+        }
+        
+        .tab {
+            padding: var(--s-8) var(--s-16);
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: var(--body);
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+        }
+        
+        .tab:hover {
+            color: var(--text);
+        }
+        
+        .tab.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+        
+        /* Toolbar */
+        .toolbar {
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            padding: var(--s-8) var(--s-16);
+            display: flex;
+            gap: var(--s-16);
+            flex-shrink: 0;
+            flex-wrap: wrap;
+        }
+        
+        .toolbar-group {
+            display: flex;
+            gap: var(--s-4);
+            align-items: center;
+        }
+        
+        .toolbar-group::after {
+            content: '';
+            width: 1px;
+            height: 24px;
+            background: var(--border);
+            margin-left: var(--s-8);
+        }
+        
+        .toolbar-group:last-child::after {
+            display: none;
+        }
+        
+        /* Buttons */
+        .btn {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            padding: var(--s-4) var(--s-12);
+            border-radius: var(--r-input);
+            color: var(--text);
+            cursor: pointer;
+            font-size: var(--small);
+            display: inline-flex;
+            align-items: center;
+            gap: var(--s-4);
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+        
+        .btn:hover {
+            background: var(--bg);
+        }
+        
+        .btn:focus-visible {
+            outline: 2px solid var(--primary);
+            outline-offset: 2px;
+        }
+        
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+        
+        .btn-primary:hover {
+            opacity: 0.9;
+        }
+        
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        /* Main Content */
+        .main {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        /* Split View */
+        .split-view {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+        
+        .split-left {
+            min-width: 360px;
+            width: 40%;
+            border-right: 1px solid var(--border);
+            background: var(--surface);
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .split-right {
+            flex: 1;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .split-handle {
+            width: 4px;
+            background: var(--border);
+            cursor: col-resize;
+            position: relative;
+            flex-shrink: 0;
+        }
+        
+        .split-handle:hover {
+            background: var(--primary);
+        }
+        
+        /* Grid */
+        .grid-container {
+            flex: 1;
+            overflow: auto;
+            position: relative;
+        }
+        
+        .grid-header {
+            position: sticky;
+            top: 0;
+            background: var(--bg);
+            border-bottom: 2px solid var(--border);
+            z-index: 10;
+            display: flex;
+        }
+        
+        .grid-body {
+            position: relative;
+        }
+        
+        .grid-row {
+            display: flex;
+            border-bottom: 1px solid var(--border);
+            min-height: 32px;
+            transition: background 0.1s;
+        }
+        
+        .grid-row:hover {
+            background: var(--bg);
+        }
+        
+        .grid-row.selected {
+            background: var(--selection);
+        }
+        
+        .grid-row.summary {
+            font-weight: 600;
+        }
+        
+        .grid-cell {
+            padding: var(--s-4) var(--s-8);
+            border-right: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            min-width: 80px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .grid-cell.editable {
+            cursor: text;
+        }
+        
+        .grid-cell.editing {
+            padding: 0;
+        }
+        
+        .grid-cell input {
+            width: 100%;
+            padding: var(--s-4) var(--s-8);
+            border: none;
+            background: white;
+            font: inherit;
+            outline: 2px solid var(--primary);
+        }
+        
+        .cell-wbs { width: 60px; font-family: monospace; }
+        .cell-name { flex: 1; min-width: 200px; }
+        .cell-duration { width: 80px; }
+        .cell-start { width: 100px; font-family: monospace; }
+        .cell-finish { width: 100px; font-family: monospace; }
+        .cell-progress { width: 80px; }
+        
+        /* Gantt Chart */
+        .gantt-container {
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            position: relative;
+            background: var(--surface);
+        }
+        
+        .gantt-canvas {
+            display: block;
+            image-rendering: crisp-edges;
+        }
+        
+        .gantt-header {
+            position: sticky;
+            top: 0;
+            background: var(--bg);
+            border-bottom: 2px solid var(--border);
+            z-index: 10;
+            height: 60px;
+        }
+        
+        /* Toast */
+        .toast-container {
+            position: fixed;
+            bottom: var(--s-24);
+            right: var(--s-24);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: var(--s-8);
+        }
+        
+        .toast {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--r-input);
+            padding: var(--s-12) var(--s-16);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            animation: slideIn 0.3s ease;
+            min-width: 300px;
+        }
+        
+        .toast.success {
+            border-left: 4px solid var(--success);
+        }
+        
+        .toast.error {
+            border-left: 4px solid var(--danger);
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        /* Dialog */
+        .dialog-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 999;
+            animation: fadeIn 0.2s;
+        }
+        
+        .dialog {
+            background: var(--surface);
+            border-radius: var(--r-dialog);
+            padding: var(--s-24);
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 25px rgba(0,0,0,0.15);
+        }
+        
+        .dialog-header {
+            font-size: var(--h2);
+            font-weight: 600;
+            margin-bottom: var(--s-16);
+        }
+        
+        .dialog-actions {
+            display: flex;
+            gap: var(--s-8);
+            justify-content: flex-end;
+            margin-top: var(--s-24);
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        /* Form Elements */
+        .form-group {
+            margin-bottom: var(--s-16);
+        }
+        
+        .form-label {
+            display: block;
+            margin-bottom: var(--s-4);
+            font-size: var(--small);
+            color: var(--text-muted);
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: var(--s-8);
+            border: 1px solid var(--border);
+            border-radius: var(--r-input);
+            background: var(--surface);
+            color: var(--text);
+            font: inherit;
+        }
+        
+        .form-input:focus {
+            outline: 2px solid var(--primary);
+            outline-offset: -1px;
+        }
+        
+        /* Empty State */
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: var(--s-40);
+            color: var(--text-muted);
+            text-align: center;
+            height: 100%;
+        }
+        
+        .empty-state h3 {
+            font-size: var(--h2);
+            margin-bottom: var(--s-8);
+            color: var(--text);
+        }
+        
+        .empty-state p {
+            margin-bottom: var(--s-16);
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .split-view {
+                flex-direction: column;
+            }
+            
+            .split-left {
+                width: 100%;
+                border-right: none;
+                border-bottom: 1px solid var(--border);
+                max-height: 50vh;
+            }
+            
+            .split-handle {
+                display: none;
+            }
+            
+            .toolbar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .toolbar-group {
+                justify-content: space-between;
+            }
+            
+            .toolbar-group::after {
+                display: none;
+            }
+        }
+        
+        /* Accessibility */
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0,0,0,0);
+            white-space: nowrap;
+            border: 0;
+        }
+        
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    
+    <script>
+        // App State
+        const state = {
+            theme: localStorage.getItem('theme') || 'light',
+            activeTab: 'gantt',
+            tasks: [],
+            resources: [],
+            calendars: [],
+            selectedTasks: new Set(),
+            viewState: {
+                zoom: 'week',
+                scrollX: 0,
+                scrollY: 0,
+                columns: ['wbs', 'name', 'duration', 'start', 'finish', 'progress']
+            },
+            dirty: false,
+            lastSave: Date.now()
+        };
+        
+        // Scheduling Engine
+        class SchedulingEngine {
+            constructor() {
+                this.workingDays = [1,2,3,4,5]; // Mon-Fri
+                this.workingHours = { start: 9, end: 17 };
+                this.holidays = [];
+            }
+            
+            isWorkingDay(date) {
+                const day = date.getDay();
+                const dateStr = this.formatDate(date);
+                return this.workingDays.includes(day) && 
+                       !this.holidays.some(h => h.date === dateStr);
+            }
+            
+            addWorkingDays(startDate, days) {
+                const date = new Date(startDate);
+                let daysAdded = 0;
+                
+                while (daysAdded < days) {
+                    date.setDate(date.getDate() + 1);
+                    if (this.isWorkingDay(date)) {
+                        daysAdded++;
+                    }
+                }
+                
+                return date;
+            }
+            
+            getWorkingDaysBetween(start, end) {
+                let count = 0;
+                const current = new Date(start);
+                
+                while (current <= end) {
+                    if (this.isWorkingDay(current)) count++;
+                    current.setDate(current.getDate() + 1);
+                }
+                
+                return count;
+            }
+            
+            calculateSchedule(tasks) {
+                const taskMap = new Map(tasks.map(t => [t.id, {...t}]));
+                
+                // Forward pass
+                tasks.forEach(task => {
+                    if (!task.predecessors || task.predecessors.length === 0) {
+                        task.earlyStart = task.start || new Date();
+                        task.earlyFinish = this.addWorkingDays(task.earlyStart, task.duration);
+                    }
+                });
+                
+                // Calculate dependencies
+                let changed = true;
+                while (changed) {
+                    changed = false;
+                    tasks.forEach(task => {
+                        if (task.predecessors && task.predecessors.length > 0) {
+                            let maxDate = new Date(0);
+                            
+                            task.predecessors.forEach(pred => {
+                                const predTask = taskMap.get(pred.taskId);
+                                if (predTask && predTask.earlyFinish) {
+                                    const lagDays = pred.lag || 0;
+                                    const predDate = this.addWorkingDays(predTask.earlyFinish, lagDays);
+                                    if (predDate > maxDate) maxDate = predDate;
+                                }
+                            });
+                            
+                            if (maxDate > new Date(0) && (!task.earlyStart || maxDate > task.earlyStart)) {
+                                task.earlyStart = maxDate;
+                                task.earlyFinish = this.addWorkingDays(task.earlyStart, task.duration);
+                                changed = true;
+                            }
+                        }
+                    });
+                }
+                
+                // Calculate float and critical path
+                const projectEnd = Math.max(...tasks.map(t => t.earlyFinish?.getTime() || 0));
+                
+                tasks.forEach(task => {
+                    task.lateFinish = new Date(projectEnd);
+                    task.lateStart = this.addWorkingDays(task.lateFinish, -task.duration);
+                    task.totalFloat = this.getWorkingDaysBetween(task.earlyFinish, task.lateFinish);
+                    task.isCritical = task.totalFloat === 0;
+                });
+                
+                return tasks;
+            }
+            
+            formatDate(date) {
+                if (!date) return '';
+                const d = new Date(date);
+                const day = String(d.getDate()).padStart(2, '0');
+                const month = String(d.getMonth() + 1).padStart(2, '0');
+                const year = d.getFullYear();
+                return `${day}/${month}/${year}`;
+            }
+            
+            parseDate(str) {
+                if (!str) return null;
+                const parts = str.split('/');
+                if (parts.length !== 3) return null;
+                return new Date(parts[2], parts[1] - 1, parts[0]);
+            }
+            
+            parseDuration(str) {
+                if (!str) return 0;
+                const match = str.match(/^(\d+)([dhw])?$/);
+                if (!match) return parseInt(str) || 0;
+                
+                const value = parseInt(match[1]);
+                const unit = match[2] || 'd';
+                
+                switch(unit) {
+                    case 'h': return value / 8; // 8 hours = 1 day
+                    case 'w': return value * 5; // 5 days = 1 week
+                    default: return value;
+                }
+            }
+        }
+        
+        const scheduler = new SchedulingEngine();
+        
+        // UI Components
+        class GanttApp {
+            constructor() {
+                this.root = document.getElementById('root');
+                this.init();
+            }
+            
+            init() {
+                // Load saved data
+                this.loadFromStorage();
+                
+                // Set theme
+                document.documentElement.setAttribute('data-theme', state.theme);
+                
+                // Initial render
+                this.render();
+                
+                // Autosave
+                setInterval(() => this.autosave(), 2000);
+                
+                // Keyboard shortcuts
+                document.addEventListener('keydown', this.handleKeyboard.bind(this));
+            }
+            
+            loadFromStorage() {
+                const saved = localStorage.getItem('ganttData');
+                if (saved) {
+                    try {
+                        const data = JSON.parse(saved);
+                        state.tasks = data.tasks || [];
+                        state.resources = data.resources || [];
+                        state.calendars = data.calendars || [];
+                    } catch(e) {
+                        console.error('Failed to load saved data');
+                    }
+                }
+                
+                // Load demo data if empty
+                if (state.tasks.length === 0) {
+                    state.tasks = this.generateDemoTasks();
+                }
+            }
+            
+            generateDemoTasks() {
+                return [
+                    { id: '1', wbs: '1', name: 'Project Setup', duration: 5, start: new Date('2025-01-06'), percentComplete: 100 },
+                    { id: '2', wbs: '2', name: 'Design Phase', duration: 10, start: new Date('2025-01-13'), percentComplete: 75, isSummary: true },
+                    { id: '3', wbs: '2.1', parentId: '2', name: 'UI Design', duration: 5, start: new Date('2025-01-13'), percentComplete: 100 },
+                    { id: '4', wbs: '2.2', parentId: '2', name: 'Database Design', duration: 5, start: new Date('2025-01-20'), percentComplete: 50, predecessors: [{taskId: '3', type: 'FS', lag: 0}] },
+                    { id: '5', wbs: '3', name: 'Development', duration: 20, start: new Date('2025-01-27'), percentComplete: 30, isSummary: true },
+                    { id: '6', wbs: '3.1', parentId: '5', name: 'Backend Development', duration: 15, start: new Date('2025-01-27'), percentComplete: 40 },
+                    { id: '7', wbs: '3.2', parentId: '5', name: 'Frontend Development', duration: 15, start: new Date('2025-01-27'), percentComplete: 20 },
+                    { id: '8', wbs: '4', name: 'Testing', duration: 10, start: new Date('2025-02-24'), percentComplete: 0, predecessors: [{taskId: '6', type: 'FS', lag: 0}, {taskId: '7', type: 'FS', lag: 0}] },
+                    { id: '9', wbs: '5', name: 'Deployment', duration: 3, start: new Date('2025-03-10'), percentComplete: 0, predecessors: [{taskId: '8', type: 'FS', lag: 0}] },
+                    { id: '10', wbs: '6', name: 'Project Complete', duration: 0, start: new Date('2025-03-13'), percentComplete: 0, isMilestone: true, predecessors: [{taskId: '9', type: 'FS', lag: 0}] }
+                ];
+            }
+            
+            autosave() {
+                if (!state.dirty) return;
+                
+                const data = {
+                    tasks: state.tasks,
+                    resources: state.resources,
+                    calendars: state.calendars,
+                    viewState: state.viewState
+                };
+                
+                localStorage.setItem('ganttData', JSON.stringify(data));
+                state.dirty = false;
+                state.lastSave = Date.now();
+                
+                this.showToast('Saved', 'success');
+            }
+            
+            showToast(message, type = 'info') {
+                const container = document.querySelector('.toast-container') || this.createToastContainer();
+                const toast = document.createElement('div');
+                toast.className = `toast ${type}`;
+                toast.textContent = message;
+                container.appendChild(toast);
+                
+                setTimeout(() => toast.remove(), 3000);
+            }
+            
+            createToastContainer() {
+                const container = document.createElement('div');
+                container.className = 'toast-container';
+                document.body.appendChild(container);
+                return container;
+            }
+            
+            handleKeyboard(e) {
+                // Ctrl+Z - Undo
+                if (e.ctrlKey && e.key === 'z') {
+                    e.preventDefault();
+                    this.undo();
+                }
+                
+                // Ctrl+Y - Redo
+                if (e.ctrlKey && e.key === 'y') {
+                    e.preventDefault();
+                    this.redo();
+                }
+                
+                // Ctrl+S - Save
+                if (e.ctrlKey && e.key === 's') {
+                    e.preventDefault();
+                    this.autosave();
+                }
+                
+                // Delete - Remove task
+                if (e.key === 'Delete' && state.selectedTasks.size > 0) {
+                    e.preventDefault();
+                    this.deleteSelectedTasks();
+                }
+            }
+            
+            undo() {
+                // Implement undo logic
+                this.showToast('Undo', 'info');
+            }
+            
+            redo() {
+                // Implement redo logic
+                this.showToast('Redo', 'info');
+            }
+            
+            deleteSelectedTasks() {
+                if (confirm('Delete selected tasks?')) {
+                    state.tasks = state.tasks.filter(t => !state.selectedTasks.has(t.id));
+                    state.selectedTasks.clear();
+                    state.dirty = true;
+                    this.render();
+                }
+            }
+            
+            render() {
+                // Calculate schedule
+                state.tasks = scheduler.calculateSchedule(state.tasks);
+                
+                this.root.innerHTML = `
+                    <div class="app">
+                        ${this.renderHeader()}
+                        ${this.renderTabs()}
+                        ${this.renderToolbar()}
+                        <div class="main">
+                            ${this.renderContent()}
+                        </div>
+                    </div>
+                `;
+                
+                // Attach event handlers
+                this.attachEventHandlers();
+            }
+            
+            renderHeader() {
+                return `
+                    <header class="header">
+                        <a href="#main" class="sr-only">Skip to content</a>
+                        <h1>Gantt Next</h1>
+                        <select class="form-input" style="width: 200px;">
+                            <option>Sample Project</option>
+                        </select>
+                        <div class="header-actions">
+                            <button class="btn" onclick="app.toggleTheme()" aria-label="Toggle theme">
+                                ${state.theme === 'light' ? '🌙' : '☀️'} Theme
+                            </button>
+                            <button class="btn" aria-label="Help">Help</button>
+                        </div>
+                    </header>
+                `;
+            }
+            
+            renderTabs() {
+                const tabs = ['Gantt', 'Board', 'Calendar', 'List', 'Dashboard'];
+                return `
+                    <nav class="tabs" role="tablist">
+                        ${tabs.map(tab => `
+                            <button 
+                                class="tab ${state.activeTab === tab.toLowerCase() ? 'active' : ''}"
+                                role="tab"
+                                aria-selected="${state.activeTab === tab.toLowerCase()}"
+                                onclick="app.switchTab('${tab.toLowerCase()}')"
+                            >
+                                ${tab}
+                            </button>
+                        `).join('')}
+                    </nav>
+                `;
+            }
+            
+            renderToolbar() {
+                return `
+                    <div class="toolbar" role="toolbar">
+                        <div class="toolbar-group">
+                            <button class="btn" onclick="app.newTask()">➕ Add Task</button>
+                            <button class="btn" onclick="app.deleteSelectedTasks()" ${state.selectedTasks.size === 0 ? 'disabled' : ''}>🗑️ Delete</button>
+                        </div>
+                        <div class="toolbar-group">
+                            <button class="btn" onclick="app.undo()">↶ Undo</button>
+                            <button class="btn" onclick="app.redo()">↷ Redo</button>
+                        </div>
+                        <div class="toolbar-group">
+                            <button class="btn" onclick="app.zoomIn()">🔍+ Zoom In</button>
+                            <button class="btn" onclick="app.zoomOut()">🔍- Zoom Out</button>
+                            <button class="btn" onclick="app.fitToScreen()">⬚ Fit</button>
+                        </div>
+                        <div class="toolbar-group">
+                            <button class="btn" onclick="app.importCSV()">📥 Import</button>
+                            <button class="btn" onclick="app.exportPDF()">📄 Export PDF</button>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            renderContent() {
+                switch(state.activeTab) {
+                    case 'gantt':
+                        return this.renderGanttView();
+                    case 'board':
+                        return this.renderBoardView();
+                    case 'calendar':
+                        return this.renderCalendarView();
+                    case 'list':
+                        return this.renderListView();
+                    case 'dashboard':
+                        return this.renderDashboardView();
+                    default:
+                        return this.renderGanttView();
+                }
+            }
+            
+            renderGanttView() {
+                if (state.tasks.length === 0) {
+                    return `
+                        <div class="empty-state">
+                            <h3>No tasks yet</h3>
+                            <p>Get started by adding your first task</p>
+                            <button class="btn btn-primary" onclick="app.newTask()">Add First Task</button>
+                        </div>
+                    `;
+                }
+                
+                return `
+                    <div class="split-view" id="main">
+                        <div class="split-left">
+                            ${this.renderGrid()}
+                        </div>
+                        <div class="split-handle"></div>
+                        <div class="split-right">
+                            ${this.renderGanttChart()}
+                        </div>
+                    </div>
+                `;
+            }
+            
+            renderGrid() {
+                const columns = [
+                    { key: 'wbs', label: 'WBS', width: 60 },
+                    { key: 'name', label: 'Task Name', width: 200, flex: true },
+                    { key: 'duration', label: 'Duration', width: 80 },
+                    { key: 'start', label: 'Start', width: 100 },
+                    { key: 'finish', label: 'Finish', width: 100 },
+                    { key: 'progress', label: 'Progress', width: 80 }
+                ];
+                
+                return `
+                    <div class="grid-container">
+                        <div class="grid-header">
+                            ${columns.map(col => `
+                                <div class="grid-cell cell-${col.key}" style="${col.flex ? 'flex: 1;' : `width: ${col.width}px;`}">
+                                    ${col.label}
+                                </div>
+                            `).join('')}
+                        </div>
+                        <div class="grid-body">
+                            ${state.tasks.map(task => this.renderGridRow(task, columns)).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+            
+            renderGridRow(task, columns) {
+                const isSelected = state.selectedTasks.has(task.id);
+                const rowClass = `grid-row ${isSelected ? 'selected' : ''} ${task.isSummary ? 'summary' : ''}`;
+                
+                return `
+                    <div class="${rowClass}" data-task-id="${task.id}" onclick="app.selectTask('${task.id}', event)">
+                        ${columns.map(col => {
+                            let value = '';
+                            switch(col.key) {
+                                case 'wbs':
+                                    value = task.wbs || '';
+                                    break;
+                                case 'name':
+                                    const indent = (task.wbs?.split('.').length - 1) * 20;
+                                    value = `<span style="margin-left: ${indent}px">${task.isSummary ? '▼ ' : ''}${task.name}</span>`;
+                                    break;
+                                case 'duration':
+                                    value = task.duration + 'd';
+                                    break;
+                                case 'start':
+                                    value = scheduler.formatDate(task.start || task.earlyStart);
+                                    break;
+                                case 'finish':
+                                    value = scheduler.formatDate(task.earlyFinish || scheduler.addWorkingDays(task.start, task.duration));
+                                    break;
+                                case 'progress':
+                                    value = (task.percentComplete || 0) + '%';
+                                    break;
+                            }
+                            
+                            return `
+                                <div class="grid-cell cell-${col.key} ${col.key !== 'wbs' ? 'editable' : ''}" 
+                                     style="${col.flex ? 'flex: 1;' : `width: ${col.width}px;`}"
+                                     ondblclick="app.editCell('${task.id}', '${col.key}', event)">
+                                    ${value}
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                `;
+            }
+            
+            renderGanttChart() {
+                return `
+                    <div class="gantt-container">
+                        <canvas id="gantt-canvas" class="gantt-canvas"></canvas>
+                    </div>
+                `;
+            }
+            
+            renderBoardView() {
+                return `
+                    <div class="empty-state">
+                        <h3>No status set</h3>
+                        <p>Set task statuses to use the board view</p>
+                        <button class="btn btn-primary">Add Status</button>
+                    </div>
+                `;
+            }
+            
+            renderCalendarView() {
+                return `
+                    <div class="empty-state">
+                        <h3>No tasks with dates</h3>
+                        <p>Set start dates on tasks to see them in calendar</p>
+                    </div>
+                `;
+            }
+            
+            renderListView() {
+                return `
+                    <div style="padding: var(--s-16);">
+                        <h2>Task List</h2>
+                        <table style="width: 100%; margin-top: var(--s-16);">
+                            <thead>
+                                <tr>
+                                    <th>WBS</th>
+                                    <th>Name</th>
+                                    <th>Duration</th>
+                                    <th>Start</th>
+                                    <th>Finish</th>
+                                    <th>Progress</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${state.tasks.map(task => `
+                                    <tr>
+                                        <td>${task.wbs || ''}</td>
+                                        <td>${task.name}</td>
+                                        <td>${task.duration}d</td>
+                                        <td>${scheduler.formatDate(task.start)}</td>
+                                        <td>${scheduler.formatDate(task.earlyFinish)}</td>
+                                        <td>${task.percentComplete || 0}%</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            }
+            
+            renderDashboardView() {
+                const tasksByStatus = {
+                    'Not Started': state.tasks.filter(t => !t.percentComplete || t.percentComplete === 0).length,
+                    'In Progress': state.tasks.filter(t => t.percentComplete > 0 && t.percentComplete < 100).length,
+                    'Complete': state.tasks.filter(t => t.percentComplete === 100).length
+                };
+                
+                return `
+                    <div style="padding: var(--s-16);">
+                        <h2>Project Dashboard</h2>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--s-16); margin-top: var(--s-16);">
+                            <div style="background: var(--surface); padding: var(--s-16); border-radius: var(--r-input); border: 1px solid var(--border);">
+                                <h3>Tasks by Status</h3>
+                                <div style="margin-top: var(--s-8);">
+                                    <div>Not Started: ${tasksByStatus['Not Started']}</div>
+                                    <div>In Progress: ${tasksByStatus['In Progress']}</div>
+                                    <div>Complete: ${tasksByStatus['Complete']}</div>
+                                </div>
+                            </div>
+                            <div style="background: var(--surface); padding: var(--s-16); border-radius: var(--r-input); border: 1px solid var(--border);">
+                                <h3>Critical Tasks</h3>
+                                <div style="margin-top: var(--s-8);">
+                                    ${state.tasks.filter(t => t.isCritical).length} critical tasks
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            attachEventHandlers() {
+                // Draw Gantt chart if on that view
+                if (state.activeTab === 'gantt' && state.tasks.length > 0) {
+                    setTimeout(() => this.drawGanttChart(), 100);
+                }
+                
+                // Split view resizing
+                const handle = document.querySelector('.split-handle');
+                if (handle) {
+                    let isResizing = false;
+                    handle.addEventListener('mousedown', () => isResizing = true);
+                    document.addEventListener('mousemove', (e) => {
+                        if (!isResizing) return;
+                        const splitLeft = document.querySelector('.split-left');
+                        if (splitLeft) {
+                            splitLeft.style.width = e.clientX + 'px';
+                        }
+                    });
+                    document.addEventListener('mouseup', () => isResizing = false);
+                }
+            }
+            
+            drawGanttChart() {
+                const canvas = document.getElementById('gantt-canvas');
+                if (!canvas) return;
+                
+                const container = canvas.parentElement;
+                const ctx = canvas.getContext('2d');
+                
+                // Set canvas size
+                canvas.width = container.clientWidth;
+                canvas.height = Math.max(600, state.tasks.length * 32 + 100);
+                
+                // Clear canvas
+                ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--surface');
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                // Calculate date range
+                const dates = state.tasks.flatMap(t => [t.start, t.earlyFinish]).filter(d => d);
+                if (dates.length === 0) return;
+                
+                const minDate = new Date(Math.min(...dates.map(d => d.getTime())));
+                const maxDate = new Date(Math.max(...dates.map(d => d.getTime())));
+                
+                // Add padding
+                minDate.setDate(minDate.getDate() - 7);
+                maxDate.setDate(maxDate.getDate() + 7);
+                
+                const totalDays = Math.ceil((maxDate - minDate) / (1000 * 60 * 60 * 24));
+                const dayWidth = canvas.width / totalDays;
+                
+                // Draw timeline header
+                ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--bg');
+                ctx.fillRect(0, 0, canvas.width, 60);
+                
+                // Draw month/week labels
+                ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--text');
+                ctx.font = '12px system-ui';
+                
+                const current = new Date(minDate);
+                let lastMonth = -1;
+                for (let i = 0; i < totalDays; i++) {
+                    const x = i * dayWidth;
+                    
+                    // Month labels
+                    if (current.getMonth() !== lastMonth) {
+                        lastMonth = current.getMonth();
+                        const monthName = current.toLocaleDateString('en-AU', { month: 'short', year: 'numeric' });
+                        ctx.fillText(monthName, x + 4, 20);
+                    }
+                    
+                    // Day labels for week view
+                    if (dayWidth > 15) {
+                        ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--text-muted');
+                        ctx.font = '10px system-ui';
+                        ctx.fillText(current.getDate().toString(), x + 2, 45);
+                    }
+                    
+                    // Weekend shading
+                    if (current.getDay() === 0 || current.getDay() === 6) {
+                        ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--weekend');
+                        ctx.fillRect(x, 60, dayWidth, canvas.height - 60);
+                    }
+                    
+                    // Grid lines
+                    ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--border');
+                    ctx.lineWidth = 0.5;
+                    ctx.beginPath();
+                    ctx.moveTo(x, 60);
+                    ctx.lineTo(x, canvas.height);
+                    ctx.stroke();
+                    
+                    current.setDate(current.getDate() + 1);
+                }
+                
+                // Draw today line
+                const today = new Date();
+                if (today >= minDate && today <= maxDate) {
+                    const todayX = ((today - minDate) / (1000 * 60 * 60 * 24)) * dayWidth;
+                    ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--warning');
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.moveTo(todayX, 60);
+                    ctx.lineTo(todayX, canvas.height);
+                    ctx.stroke();
+                }
+                
+                // Draw task bars
+                state.tasks.forEach((task, index) => {
+                    const y = 80 + index * 32;
+                    const start = task.start || task.earlyStart;
+                    const finish = task.earlyFinish || scheduler.addWorkingDays(start, task.duration);
+                    
+                    if (!start || !finish) return;
+                    
+                    const x = ((start - minDate) / (1000 * 60 * 60 * 24)) * dayWidth;
+                    const width = ((finish - start) / (1000 * 60 * 60 * 24)) * dayWidth;
+                    
+                    // Task bar
+                    if (task.isMilestone) {
+                        // Draw diamond for milestone
+                        ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--primary');
+                        ctx.beginPath();
+                        ctx.moveTo(x, y + 8);
+                        ctx.lineTo(x + 8, y);
+                        ctx.lineTo(x + 16, y + 8);
+                        ctx.lineTo(x + 8, y + 16);
+                        ctx.closePath();
+                        ctx.fill();
+                    } else {
+                        // Regular task bar
+                        const barHeight = task.isSummary ? 12 : 20;
+                        const barY = y - barHeight/2 + 8;
+                        
+                        // Bar background
+                        ctx.fillStyle = task.isCritical ? 
+                            getComputedStyle(document.documentElement).getPropertyValue('--critical-bar') :
+                            getComputedStyle(document.documentElement).getPropertyValue('--primary');
+                        
+                        if (task.isSummary) {
+                            // Summary bar with brackets
+                            ctx.fillRect(x, barY, width, barHeight);
+                            ctx.fillRect(x, barY - 4, 4, barHeight + 8);
+                            ctx.fillRect(x + width - 4, barY - 4, 4, barHeight + 8);
+                        } else {
+                            // Regular bar with rounded corners
+                            ctx.beginPath();
+                            ctx.roundRect(x, barY, width, barHeight, 4);
+                            ctx.fill();
+                            
+                            // Progress fill
+                            if (task.percentComplete > 0) {
+                                ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--success');
+                                const progressWidth = width * (task.percentComplete / 100);
+                                ctx.beginPath();
+                                ctx.roundRect(x, barY, progressWidth, barHeight, 4);
+                                ctx.fill();
+                            }
+                        }
+                    }
+                    
+                    // Task name
+                    ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--text');
+                    ctx.font = '12px system-ui';
+                    ctx.fillText(task.name, x + width + 8, y + 4);
+                });
+                
+                // Draw dependency lines
+                state.tasks.forEach(task => {
+                    if (!task.predecessors) return;
+                    
+                    task.predecessors.forEach(pred => {
+                        const predTask = state.tasks.find(t => t.id === pred.taskId);
+                        if (!predTask) return;
+                        
+                        const predIndex = state.tasks.indexOf(predTask);
+                        const taskIndex = state.tasks.indexOf(task);
+                        
+                        const predFinish = predTask.earlyFinish || scheduler.addWorkingDays(predTask.start, predTask.duration);
+                        const taskStart = task.start || task.earlyStart;
+                        
+                        if (!predFinish || !taskStart) return;
+                        
+                        const x1 = ((predFinish - minDate) / (1000 * 60 * 60 * 24)) * dayWidth;
+                        const y1 = 80 + predIndex * 32 + 8;
+                        const x2 = ((taskStart - minDate) / (1000 * 60 * 60 * 24)) * dayWidth;
+                        const y2 = 80 + taskIndex * 32 + 8;
+                        
+                        ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--border');
+                        ctx.lineWidth = 1;
+                        ctx.beginPath();
+                        ctx.moveTo(x1, y1);
+                        ctx.lineTo(x1 + 10, y1);
+                        ctx.lineTo(x1 + 10, y2);
+                        ctx.lineTo(x2 - 5, y2);
+                        ctx.stroke();
+                        
+                        // Arrow head
+                        ctx.beginPath();
+                        ctx.moveTo(x2 - 5, y2 - 3);
+                        ctx.lineTo(x2, y2);
+                        ctx.lineTo(x2 - 5, y2 + 3);
+                        ctx.stroke();
+                    });
+                });
+            }
+            
+            // Event Handlers
+            toggleTheme() {
+                state.theme = state.theme === 'light' ? 'dark' : 'light';
+                document.documentElement.setAttribute('data-theme', state.theme);
+                localStorage.setItem('theme', state.theme);
+                this.render();
+            }
+            
+            switchTab(tab) {
+                state.activeTab = tab;
+                this.render();
+            }
+            
+            selectTask(taskId, event) {
+                if (event.ctrlKey) {
+                    if (state.selectedTasks.has(taskId)) {
+                        state.selectedTasks.delete(taskId);
+                    } else {
+                        state.selectedTasks.add(taskId);
+                    }
+                } else {
+                    state.selectedTasks.clear();
+                    state.selectedTasks.add(taskId);
+                }
+                this.render();
+            }
+            
+            editCell(taskId, field, event) {
+                event.stopPropagation();
+                const cell = event.target;
+                const task = state.tasks.find(t => t.id === taskId);
+                if (!task) return;
+                
+                const input = document.createElement('input');
+                input.type = 'text';
+                
+                switch(field) {
+                    case 'name':
+                        input.value = task.name;
+                        break;
+                    case 'duration':
+                        input.value = task.duration + 'd';
+                        break;
+                    case 'start':
+                        input.value = scheduler.formatDate(task.start);
+                        break;
+                    case 'finish':
+                        input.value = scheduler.formatDate(task.earlyFinish);
+                        break;
+                    case 'progress':
+                        input.value = task.percentComplete || 0;
+                        break;
+                }
+                
+                cell.innerHTML = '';
+                cell.appendChild(input);
+                input.focus();
+                input.select();
+                
+                const save = () => {
+                    switch(field) {
+                        case 'name':
+                            task.name = input.value;
+                            break;
+                        case 'duration':
+                            task.duration = scheduler.parseDuration(input.value);
+                            break;
+                        case 'start':
+                            task.start = scheduler.parseDate(input.value);
+                            break;
+                        case 'progress':
+                            task.percentComplete = parseInt(input.value) || 0;
+                            break;
+                    }
+                    
+                    state.dirty = true;
+                    this.render();
+                };
+                
+                input.addEventListener('blur', save);
+                input.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') save();
+                    if (e.key === 'Escape') this.render();
+                });
+            }
+            
+            newTask() {
+                const newTask = {
+                    id: 'task_' + Date.now(),
+                    wbs: (state.tasks.length + 1).toString(),
+                    name: 'New Task',
+                    duration: 5,
+                    start: new Date(),
+                    percentComplete: 0
+                };
+                
+                state.tasks.push(newTask);
+                state.dirty = true;
+                this.render();
+            }
+            
+            zoomIn() {
+                // Implement zoom in
+                this.showToast('Zoomed in', 'info');
+                this.drawGanttChart();
+            }
+            
+            zoomOut() {
+                // Implement zoom out
+                this.showToast('Zoomed out', 'info');
+                this.drawGanttChart();
+            }
+            
+            fitToScreen() {
+                // Implement fit to screen
+                this.showToast('Fit to screen', 'info');
+                this.drawGanttChart();
+            }
+            
+            importCSV() {
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = '.csv';
+                input.onchange = (e) => {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        // Parse CSV
+                        const lines = e.target.result.split('\n');
+                        const headers = lines[0].split(',');
+                        
+                        const tasks = [];
+                        for (let i = 1; i < lines.length; i++) {
+                            const values = lines[i].split(',');
+                            if (values.length < 3) continue;
+                            
+                            tasks.push({
+                                id: 'imported_' + i,
+                                wbs: values[0] || i.toString(),
+                                name: values[1] || 'Task ' + i,
+                                duration: parseInt(values[2]) || 5,
+                                start: values[3] ? scheduler.parseDate(values[3]) : new Date(),
+                                percentComplete: parseInt(values[4]) || 0
+                            });
+                        }
+                        
+                        state.tasks = tasks;
+                        state.dirty = true;
+                        this.render();
+                        this.showToast('Imported ' + tasks.length + ' tasks', 'success');
+                    };
+                    reader.readAsText(file);
+                };
+                input.click();
+            }
+            
+            exportPDF() {
+                // Simple PDF export using print
+                window.print();
+                this.showToast('PDF export initiated', 'info');
+            }
+        }
+        
+        // Initialize app
+        const app = new GanttApp();
+        
+        // Add print styles
+        const printStyle = document.createElement('style');
+        printStyle.textContent = `
+            @media print {
+                .header, .tabs, .toolbar { display: none; }
+                .split-view { display: block; }
+                .split-left { width: 40%; float: left; border: none; }
+                .split-right { width: 60%; float: right; }
+                .split-handle { display: none; }
+                .grid-row:hover { background: none; }
+                * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            }
+        `;
+        document.head.appendChild(printStyle);
+    </script>
+</body>
+</html>
