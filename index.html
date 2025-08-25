@@ -3,18 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Fast, accessible Gantt chart for project management">
-    <title>Gantt Next</title>
+    <meta name="description" content="Plan, link, and track tasks on a timeline">
+    <title>Gantt Chart - Project Management</title>
     <style>
-        /* Reset & Base */
+        /* Reset & Variables */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
         :root {
-            /* Spacing */
-            --s-4: 4px; --s-8: 8px; --s-12: 12px; --s-16: 16px;
-            --s-20: 20px; --s-24: 24px; --s-32: 32px; --s-40: 40px;
-            
-            /* Colours - Light */
             --text: #1f2937;
             --text-muted: #6b7280;
             --bg: #f8fafc;
@@ -22,20 +17,24 @@
             --border: #e5e7eb;
             --primary: #0b5bd3;
             --danger: #ef4444;
+            --critical: #ef4444;
             --warning: #f59e0b;
             --success: #10b981;
             --non-working: #f3f4f6;
             --weekend: #eef2ff;
-            --baseline-bar: #94a3b8;
-            --critical-bar: #ef4444;
-            --selection: #93c5fd;
+            --baseline: #94a3b8;
+            --selection: #dbeafe;
+            --link: #6b7280;
+            --link-arrow: #374151;
+            --constraint-icon: #7c3aed;
+            --deadline: #dc2626;
             
-            /* Typography */
-            --h1: 18px; --h2: 16px; --h3: 14px;
-            --body: 13px; --small: 12px;
-            
-            /* Radius */
-            --r-input: 8px; --r-dialog: 12px;
+            --header-height: 48px;
+            --toolbar-height: 40px;
+            --timeline-height: 60px;
+            --footer-height: 32px;
+            --row-height: 32px;
+            --min-touch-target: 44px;
         }
         
         [data-theme="dark"] {
@@ -46,186 +45,181 @@
             --border: #334155;
             --non-working: #1e293b;
             --weekend: #1e293b;
+            --selection: #1e3a8a;
         }
         
         body {
-            font-family: system-ui, -apple-system, sans-serif;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             background: var(--bg);
             color: var(--text);
-            font-size: var(--body);
+            font-size: 13px;
             line-height: 1.5;
             -webkit-font-smoothing: antialiased;
+            overflow: hidden;
         }
         
-        /* Layout */
+        /* Layout Structure */
         .app {
             display: flex;
             flex-direction: column;
             height: 100vh;
-            overflow: hidden;
         }
         
         /* Header */
         .header {
+            height: var(--header-height);
             background: var(--surface);
             border-bottom: 1px solid var(--border);
-            padding: var(--s-12) var(--s-16);
             display: flex;
             align-items: center;
-            gap: var(--s-16);
+            padding: 0 16px;
+            gap: 16px;
             flex-shrink: 0;
         }
         
-        .header h1 {
-            font-size: var(--h2);
+        .project-name {
+            font-size: 16px;
             font-weight: 600;
+            margin-right: auto;
         }
         
-        .header-actions {
-            margin-left: auto;
+        .header-controls {
             display: flex;
-            gap: var(--s-8);
+            gap: 12px;
+            align-items: center;
         }
         
-        /* Tabs */
-        .tabs {
-            background: var(--surface);
-            border-bottom: 1px solid var(--border);
-            display: flex;
-            gap: var(--s-4);
-            padding: 0 var(--s-16);
-            flex-shrink: 0;
-        }
-        
-        .tab {
-            padding: var(--s-8) var(--s-16);
-            background: none;
-            border: none;
-            color: var(--text-muted);
-            cursor: pointer;
-            font-size: var(--body);
-            border-bottom: 2px solid transparent;
-            transition: all 0.2s;
-        }
-        
-        .tab:hover {
+        .search-box {
+            width: 200px;
+            padding: 6px 12px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: var(--bg);
             color: var(--text);
+            font-size: 13px;
         }
         
-        .tab.active {
-            color: var(--primary);
-            border-bottom-color: var(--primary);
+        .date-range {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            color: var(--text-muted);
+            font-size: 12px;
         }
         
         /* Toolbar */
         .toolbar {
+            height: var(--toolbar-height);
             background: var(--surface);
             border-bottom: 1px solid var(--border);
-            padding: var(--s-8) var(--s-16);
             display: flex;
-            gap: var(--s-16);
+            align-items: center;
+            padding: 0 8px;
+            gap: 1px;
             flex-shrink: 0;
-            flex-wrap: wrap;
+            overflow-x: auto;
         }
         
         .toolbar-group {
             display: flex;
-            gap: var(--s-4);
-            align-items: center;
+            border-right: 1px solid var(--border);
+            margin-right: 8px;
+            padding-right: 8px;
         }
         
-        .toolbar-group::after {
-            content: '';
-            width: 1px;
-            height: 24px;
-            background: var(--border);
-            margin-left: var(--s-8);
+        .toolbar-group:last-child {
+            border-right: none;
         }
         
-        .toolbar-group:last-child::after {
-            display: none;
-        }
-        
-        /* Buttons */
-        .btn {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            padding: var(--s-4) var(--s-12);
-            border-radius: var(--r-input);
-            color: var(--text);
-            cursor: pointer;
-            font-size: var(--small);
+        .toolbar-btn {
             display: inline-flex;
             align-items: center;
-            gap: var(--s-4);
-            transition: all 0.2s;
+            gap: 4px;
+            padding: 4px 8px;
+            background: transparent;
+            border: 1px solid transparent;
+            border-radius: 4px;
+            color: var(--text);
+            font-size: 12px;
+            cursor: pointer;
             white-space: nowrap;
+            transition: all 0.15s;
         }
         
-        .btn:hover {
+        .toolbar-btn:hover {
             background: var(--bg);
+            border-color: var(--border);
         }
         
-        .btn:focus-visible {
+        .toolbar-btn:active {
+            background: var(--border);
+        }
+        
+        .toolbar-btn:focus-visible {
             outline: 2px solid var(--primary);
-            outline-offset: 2px;
+            outline-offset: 1px;
         }
         
-        .btn-primary {
-            background: var(--primary);
-            color: white;
-            border-color: var(--primary);
-        }
-        
-        .btn-primary:hover {
-            opacity: 0.9;
-        }
-        
-        .btn:disabled {
+        .toolbar-btn[disabled] {
             opacity: 0.5;
             cursor: not-allowed;
         }
         
-        /* Main Content */
+        .toolbar-dropdown {
+            position: relative;
+        }
+        
+        .toolbar-dropdown::after {
+            content: '▾';
+            margin-left: 2px;
+            font-size: 10px;
+        }
+        
+        /* Main Content Area */
         .main {
             flex: 1;
             display: flex;
             overflow: hidden;
-            position: relative;
         }
         
         /* Split View */
-        .split-view {
+        .split-container {
             display: flex;
             flex: 1;
             overflow: hidden;
         }
         
         .split-left {
-            min-width: 360px;
-            width: 40%;
-            border-right: 1px solid var(--border);
+            width: 50%;
+            min-width: 400px;
+            max-width: 70%;
             background: var(--surface);
             display: flex;
             flex-direction: column;
-        }
-        
-        .split-right {
-            flex: 1;
-            overflow: hidden;
-            position: relative;
+            border-right: 1px solid var(--border);
         }
         
         .split-handle {
             width: 4px;
             background: var(--border);
             cursor: col-resize;
-            position: relative;
-            flex-shrink: 0;
+            transition: background 0.15s;
         }
         
         .split-handle:hover {
             background: var(--primary);
+        }
+        
+        .split-handle.dragging {
+            background: var(--primary);
+        }
+        
+        .split-right {
+            flex: 1;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            background: var(--surface);
         }
         
         /* Grid */
@@ -242,6 +236,17 @@
             border-bottom: 2px solid var(--border);
             z-index: 10;
             display: flex;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        .grid-filter-row {
+            position: sticky;
+            top: 32px;
+            background: var(--bg);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            z-index: 9;
         }
         
         .grid-body {
@@ -251,7 +256,7 @@
         .grid-row {
             display: flex;
             border-bottom: 1px solid var(--border);
-            min-height: 32px;
+            min-height: var(--row-height);
             transition: background 0.1s;
         }
         
@@ -267,15 +272,54 @@
             font-weight: 600;
         }
         
+        .grid-row.critical .cell-name {
+            color: var(--critical);
+        }
+        
+        .grid-row.has-warning {
+            border-left: 3px solid var(--warning);
+        }
+        
+        .grid-row.has-error {
+            border-left: 3px solid var(--danger);
+        }
+        
         .grid-cell {
-            padding: var(--s-4) var(--s-8);
+            padding: 6px 8px;
             border-right: 1px solid var(--border);
             display: flex;
             align-items: center;
-            min-width: 80px;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
+            position: relative;
+        }
+        
+        .grid-cell.header {
+            height: 32px;
+            padding: 8px;
+            user-select: none;
+            cursor: pointer;
+        }
+        
+        .grid-cell.header:hover {
+            background: var(--bg);
+        }
+        
+        .grid-cell.filter {
+            padding: 4px;
+            height: 28px;
+        }
+        
+        .grid-cell.filter input,
+        .grid-cell.filter select {
+            width: 100%;
+            padding: 2px 4px;
+            border: 1px solid var(--border);
+            border-radius: 3px;
+            font-size: 11px;
+            background: var(--surface);
+            color: var(--text);
         }
         
         .grid-cell.editable {
@@ -286,64 +330,309 @@
             padding: 0;
         }
         
-        .grid-cell input {
+        .grid-cell input.inline-edit {
             width: 100%;
-            padding: var(--s-4) var(--s-8);
+            height: 100%;
+            padding: 6px 8px;
             border: none;
             background: white;
             font: inherit;
             outline: 2px solid var(--primary);
         }
         
+        .grid-cell .error-message {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background: var(--danger);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 3px;
+            font-size: 11px;
+            white-space: nowrap;
+            z-index: 100;
+            margin-top: 2px;
+        }
+        
+        /* Column Widths */
+        .cell-mode { width: 40px; text-align: center; }
+        .cell-id { width: 50px; font-family: monospace; }
         .cell-wbs { width: 60px; font-family: monospace; }
         .cell-name { flex: 1; min-width: 200px; }
-        .cell-duration { width: 80px; }
+        .cell-duration { width: 70px; }
         .cell-start { width: 100px; font-family: monospace; }
         .cell-finish { width: 100px; font-family: monospace; }
-        .cell-progress { width: 80px; }
+        .cell-predecessors { width: 120px; }
+        .cell-resources { width: 120px; }
+        .cell-complete { width: 70px; text-align: center; }
+        .cell-constraint { width: 80px; }
+        .cell-constraint-date { width: 100px; font-family: monospace; }
+        .cell-baseline-start { width: 100px; font-family: monospace; }
+        .cell-baseline-finish { width: 100px; font-family: monospace; }
+        .cell-slack { width: 60px; text-align: right; }
+        .cell-cost { width: 80px; text-align: right; }
+        .cell-notes { width: 200px; }
         
-        /* Gantt Chart */
-        .gantt-container {
-            width: 100%;
-            height: 100%;
+        /* Row Drag Handle */
+        .row-drag-handle {
+            width: 20px;
+            cursor: move;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+        }
+        
+        .row-drag-handle:hover {
+            color: var(--text);
+        }
+        
+        /* Task Name Indentation */
+        .task-name-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .task-indent {
+            display: inline-block;
+        }
+        
+        .task-expand {
+            width: 16px;
+            height: 16px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            user-select: none;
+        }
+        
+        /* Chart */
+        .chart-container {
+            flex: 1;
             overflow: auto;
             position: relative;
             background: var(--surface);
         }
         
-        .gantt-canvas {
-            display: block;
-            image-rendering: crisp-edges;
-        }
-        
-        .gantt-header {
+        .timeline-header {
             position: sticky;
             top: 0;
+            height: var(--timeline-height);
             background: var(--bg);
             border-bottom: 2px solid var(--border);
             z-index: 10;
-            height: 60px;
         }
         
-        /* Toast */
+        .timeline-canvas {
+            display: block;
+        }
+        
+        .chart-canvas {
+            display: block;
+            cursor: crosshair;
+        }
+        
+        .chart-canvas.dragging {
+            cursor: move;
+        }
+        
+        .chart-canvas.linking {
+            cursor: crosshair;
+        }
+        
+        /* Footer */
+        .footer {
+            height: var(--footer-height);
+            background: var(--surface);
+            border-top: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            padding: 0 16px;
+            gap: 16px;
+            font-size: 12px;
+            color: var(--text-muted);
+            flex-shrink: 0;
+        }
+        
+        .footer-left {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+        }
+        
+        .footer-right {
+            margin-left: auto;
+            display: flex;
+            gap: 16px;
+            align-items: center;
+        }
+        
+        .zoom-controls {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+        }
+        
+        .zoom-btn {
+            padding: 2px 8px;
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: 3px;
+            color: var(--text);
+            cursor: pointer;
+            font-size: 11px;
+        }
+        
+        .zoom-btn:hover {
+            background: var(--bg);
+        }
+        
+        .zoom-value {
+            min-width: 50px;
+            text-align: center;
+        }
+        
+        /* Dialogs & Modals */
+        .dialog-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            animation: fadeIn 0.2s;
+        }
+        
+        .dialog {
+            background: var(--surface);
+            border-radius: 8px;
+            padding: 24px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 25px rgba(0, 0, 0, 0.15);
+        }
+        
+        .dialog-header {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+        
+        .dialog-body {
+            margin-bottom: 24px;
+        }
+        
+        .dialog-footer {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+        }
+        
+        .form-group {
+            margin-bottom: 16px;
+        }
+        
+        .form-label {
+            display: block;
+            margin-bottom: 4px;
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-muted);
+        }
+        
+        .form-input,
+        .form-select {
+            width: 100%;
+            padding: 6px 8px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            background: var(--bg);
+            color: var(--text);
+            font-size: 13px;
+        }
+        
+        .form-input:focus,
+        .form-select:focus {
+            outline: 2px solid var(--primary);
+            outline-offset: -1px;
+        }
+        
+        .form-error {
+            color: var(--danger);
+            font-size: 12px;
+            margin-top: 4px;
+        }
+        
+        /* Context Menu */
+        .context-menu {
+            position: fixed;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 4px 0;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            z-index: 1001;
+            min-width: 200px;
+        }
+        
+        .context-menu-item {
+            padding: 8px 16px;
+            cursor: pointer;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .context-menu-item:hover {
+            background: var(--bg);
+        }
+        
+        .context-menu-separator {
+            height: 1px;
+            background: var(--border);
+            margin: 4px 0;
+        }
+        
+        .context-menu-submenu {
+            position: relative;
+        }
+        
+        .context-menu-submenu::after {
+            content: '▶';
+            position: absolute;
+            right: 16px;
+            font-size: 10px;
+        }
+        
+        /* Toast Notifications */
         .toast-container {
             position: fixed;
-            bottom: var(--s-24);
-            right: var(--s-24);
-            z-index: 1000;
+            bottom: 40px;
+            right: 16px;
+            z-index: 1002;
             display: flex;
             flex-direction: column;
-            gap: var(--s-8);
+            gap: 8px;
         }
         
         .toast {
             background: var(--surface);
             border: 1px solid var(--border);
-            border-radius: var(--r-input);
-            padding: var(--s-12) var(--s-16);
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            animation: slideIn 0.3s ease;
-            min-width: 300px;
+            border-radius: 6px;
+            padding: 12px 16px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            animation: slideIn 0.3s;
+            min-width: 250px;
+            max-width: 400px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
         
         .toast.success {
@@ -354,45 +643,12 @@
             border-left: 4px solid var(--danger);
         }
         
-        @keyframes slideIn {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
+        .toast.warning {
+            border-left: 4px solid var(--warning);
         }
         
-        /* Dialog */
-        .dialog-overlay {
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.5);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 999;
-            animation: fadeIn 0.2s;
-        }
-        
-        .dialog {
-            background: var(--surface);
-            border-radius: var(--r-dialog);
-            padding: var(--s-24);
-            max-width: 500px;
-            width: 90%;
-            max-height: 80vh;
-            overflow-y: auto;
-            box-shadow: 0 20px 25px rgba(0,0,0,0.15);
-        }
-        
-        .dialog-header {
-            font-size: var(--h2);
-            font-weight: 600;
-            margin-bottom: var(--s-16);
-        }
-        
-        .dialog-actions {
-            display: flex;
-            gap: var(--s-8);
-            justify-content: flex-end;
-            margin-top: var(--s-24);
+        .toast.info {
+            border-left: 4px solid var(--primary);
         }
         
         @keyframes fadeIn {
@@ -400,66 +656,100 @@
             to { opacity: 1; }
         }
         
-        /* Form Elements */
-        .form-group {
-            margin-bottom: var(--s-16);
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
         }
         
-        .form-label {
-            display: block;
-            margin-bottom: var(--s-4);
-            font-size: var(--small);
-            color: var(--text-muted);
-        }
-        
-        .form-input {
-            width: 100%;
-            padding: var(--s-8);
-            border: 1px solid var(--border);
-            border-radius: var(--r-input);
+        /* Right Drawer - Task Info */
+        .task-info-drawer {
+            position: fixed;
+            right: 0;
+            top: var(--header-height);
+            bottom: 0;
+            width: 400px;
             background: var(--surface);
-            color: var(--text);
-            font: inherit;
+            border-left: 1px solid var(--border);
+            transform: translateX(100%);
+            transition: transform 0.3s;
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
         }
         
-        .form-input:focus {
-            outline: 2px solid var(--primary);
-            outline-offset: -1px;
+        .task-info-drawer.open {
+            transform: translateX(0);
         }
         
-        /* Empty State */
+        .drawer-header {
+            padding: 16px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .drawer-tabs {
+            display: flex;
+            gap: 0;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .drawer-tab {
+            padding: 8px 16px;
+            background: transparent;
+            border: none;
+            border-bottom: 2px solid transparent;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 13px;
+        }
+        
+        .drawer-tab.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+        
+        .drawer-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+        }
+        
+        /* Empty States */
         .empty-state {
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: var(--s-40);
+            padding: 40px;
             color: var(--text-muted);
             text-align: center;
             height: 100%;
         }
         
         .empty-state h3 {
-            font-size: var(--h2);
-            margin-bottom: var(--s-8);
+            font-size: 16px;
+            margin-bottom: 8px;
             color: var(--text);
         }
         
         .empty-state p {
-            margin-bottom: var(--s-16);
+            margin-bottom: 16px;
         }
         
-        /* Responsive */
+        /* Mobile Responsive */
         @media (max-width: 768px) {
-            .split-view {
+            .split-container {
                 flex-direction: column;
             }
             
             .split-left {
                 width: 100%;
+                max-width: 100%;
+                min-width: 0;
                 border-right: none;
                 border-bottom: 1px solid var(--border);
-                max-height: 50vh;
             }
             
             .split-handle {
@@ -467,16 +757,20 @@
             }
             
             .toolbar {
-                flex-direction: column;
-                align-items: stretch;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
             }
             
-            .toolbar-group {
-                justify-content: space-between;
+            .grid-cell,
+            .toolbar-btn,
+            .context-menu-item {
+                min-height: var(--min-touch-target);
+                display: flex;
+                align-items: center;
             }
             
-            .toolbar-group::after {
-                display: none;
+            .task-info-drawer {
+                width: 100%;
             }
         }
         
@@ -493,6 +787,11 @@
             border: 0;
         }
         
+        .focus-visible {
+            outline: 2px solid var(--primary);
+            outline-offset: 2px;
+        }
+        
         @media (prefers-reduced-motion: reduce) {
             * {
                 animation-duration: 0.01ms !important;
@@ -500,177 +799,245 @@
                 transition-duration: 0.01ms !important;
             }
         }
+        
+        /* Print Styles */
+        @media print {
+            .header, .toolbar, .footer { display: none; }
+            .split-container { display: block; }
+            .split-left { width: 40%; float: left; border: none; }
+            .split-right { width: 60%; float: right; }
+            .split-handle { display: none; }
+            * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        }
     </style>
 </head>
 <body>
-    <div id="root"></div>
+    <div class="app">
+        <!-- Header -->
+        <header class="header" role="banner">
+            <div class="project-name">Sample Project</div>
+            <div class="header-controls">
+                <input type="search" class="search-box" placeholder="Search tasks..." aria-label="Search tasks">
+                <div class="date-range">
+                    <span>01/01/2025 - 31/12/2025</span>
+                </div>
+                <button class="toolbar-btn" onclick="app.toggleTheme()" aria-label="Toggle theme">
+                    <span>🌙</span> Theme
+                </button>
+                <button class="toolbar-btn" aria-label="Help">
+                    <span>❓</span> Help
+                </button>
+            </div>
+        </header>
+        
+        <!-- Toolbar -->
+        <div class="toolbar" role="toolbar" aria-label="Main toolbar">
+            <!-- File Menu -->
+            <div class="toolbar-group">
+                <button class="toolbar-btn toolbar-dropdown" onclick="app.showMenu('file')">
+                    <span>📁</span> File
+                </button>
+            </div>
+            
+            <!-- Edit Menu -->
+            <div class="toolbar-group">
+                <button class="toolbar-btn toolbar-dropdown" onclick="app.showMenu('edit')">
+                    <span>✏️</span> Edit
+                </button>
+            </div>
+            
+            <!-- View Menu -->
+            <div class="toolbar-group">
+                <button class="toolbar-btn toolbar-dropdown" onclick="app.showMenu('view')">
+                    <span>👁️</span> View
+                </button>
+            </div>
+            
+            <!-- Insert Menu -->
+            <div class="toolbar-group">
+                <button class="toolbar-btn toolbar-dropdown" onclick="app.showMenu('insert')">
+                    <span>➕</span> Insert
+                </button>
+            </div>
+            
+            <!-- Task Menu -->
+            <div class="toolbar-group">
+                <button class="toolbar-btn toolbar-dropdown" onclick="app.showMenu('task')">
+                    <span>📋</span> Task
+                </button>
+            </div>
+            
+            <!-- Link Menu -->
+            <div class="toolbar-group">
+                <button class="toolbar-btn toolbar-dropdown" onclick="app.showMenu('link')">
+                    <span>🔗</span> Link
+                </button>
+            </div>
+            
+            <!-- Baseline Menu -->
+            <div class="toolbar-group">
+                <button class="toolbar-btn toolbar-dropdown" onclick="app.showMenu('baseline')">
+                    <span>📊</span> Baseline
+                </button>
+            </div>
+            
+            <!-- Export Menu -->
+            <div class="toolbar-group">
+                <button class="toolbar-btn toolbar-dropdown" onclick="app.showMenu('export')">
+                    <span>💾</span> Export
+                </button>
+            </div>
+            
+            <!-- Settings -->
+            <div class="toolbar-group">
+                <button class="toolbar-btn" onclick="app.showSettings()">
+                    <span>⚙️</span> Settings
+                </button>
+            </div>
+        </div>
+        
+        <!-- Main Content -->
+        <main class="main" role="main">
+            <div class="split-container" id="split-container">
+                <!-- Left Grid -->
+                <div class="split-left" id="split-left">
+                    <div class="grid-container" id="grid-container">
+                        <!-- Grid Header -->
+                        <div class="grid-header" id="grid-header"></div>
+                        <!-- Filter Row -->
+                        <div class="grid-filter-row" id="grid-filter"></div>
+                        <!-- Grid Body -->
+                        <div class="grid-body" id="grid-body"></div>
+                    </div>
+                </div>
+                
+                <!-- Splitter -->
+                <div class="split-handle" id="split-handle"></div>
+                
+                <!-- Right Chart -->
+                <div class="split-right" id="split-right">
+                    <div class="chart-container" id="chart-container">
+                        <!-- Timeline Header -->
+                        <div class="timeline-header">
+                            <canvas id="timeline-canvas" class="timeline-canvas"></canvas>
+                        </div>
+                        <!-- Chart Canvas -->
+                        <canvas id="chart-canvas" class="chart-canvas"></canvas>
+                    </div>
+                </div>
+            </div>
+        </main>
+        
+        <!-- Footer -->
+        <footer class="footer" role="contentinfo">
+            <div class="footer-left">
+                <div class="zoom-controls">
+                    <button class="zoom-btn" onclick="app.zoomOut()">−</button>
+                    <span class="zoom-value">100%</span>
+                    <button class="zoom-btn" onclick="app.zoomIn()">+</button>
+                </div>
+                <button class="toolbar-btn" onclick="app.goToToday()">Today</button>
+            </div>
+            <div class="footer-right">
+                <span id="status-text">Ready</span>
+                <span id="selection-count"></span>
+                <span>v1.0.0-a3f82c</span>
+            </div>
+        </footer>
+        
+        <!-- Task Info Drawer -->
+        <aside class="task-info-drawer" id="task-drawer">
+            <div class="drawer-header">
+                <h3>Task Info</h3>
+                <button onclick="app.closeDrawer()">✕</button>
+            </div>
+            <div class="drawer-tabs">
+                <button class="drawer-tab active">General</button>
+                <button class="drawer-tab">Links</button>
+                <button class="drawer-tab">People</button>
+                <button class="drawer-tab">Costs</button>
+                <button class="drawer-tab">Notes</button>
+                <button class="drawer-tab">History</button>
+            </div>
+            <div class="drawer-content">
+                <!-- Tab content here -->
+            </div>
+        </aside>
+        
+        <!-- Toast Container -->
+        <div class="toast-container" id="toast-container"></div>
+    </div>
     
     <script>
-        // App State
-        const state = {
-            theme: localStorage.getItem('theme') || 'light',
-            activeTab: 'gantt',
-            tasks: [],
-            resources: [],
-            calendars: [],
-            selectedTasks: new Set(),
-            viewState: {
-                zoom: 'week',
-                scrollX: 0,
-                scrollY: 0,
-                columns: ['wbs', 'name', 'duration', 'start', 'finish', 'progress']
-            },
-            dirty: false,
-            lastSave: Date.now()
-        };
-        
-        // Scheduling Engine
-        class SchedulingEngine {
-            constructor() {
-                this.workingDays = [1,2,3,4,5]; // Mon-Fri
-                this.workingHours = { start: 9, end: 17 };
-                this.holidays = [];
-            }
-            
-            isWorkingDay(date) {
-                const day = date.getDay();
-                const dateStr = this.formatDate(date);
-                return this.workingDays.includes(day) && 
-                       !this.holidays.some(h => h.date === dateStr);
-            }
-            
-            addWorkingDays(startDate, days) {
-                const date = new Date(startDate);
-                let daysAdded = 0;
-                
-                while (daysAdded < days) {
-                    date.setDate(date.getDate() + 1);
-                    if (this.isWorkingDay(date)) {
-                        daysAdded++;
-                    }
-                }
-                
-                return date;
-            }
-            
-            getWorkingDaysBetween(start, end) {
-                let count = 0;
-                const current = new Date(start);
-                
-                while (current <= end) {
-                    if (this.isWorkingDay(current)) count++;
-                    current.setDate(current.getDate() + 1);
-                }
-                
-                return count;
-            }
-            
-            calculateSchedule(tasks) {
-                const taskMap = new Map(tasks.map(t => [t.id, {...t}]));
-                
-                // Forward pass
-                tasks.forEach(task => {
-                    if (!task.predecessors || task.predecessors.length === 0) {
-                        task.earlyStart = task.start || new Date();
-                        task.earlyFinish = this.addWorkingDays(task.earlyStart, task.duration);
-                    }
-                });
-                
-                // Calculate dependencies
-                let changed = true;
-                while (changed) {
-                    changed = false;
-                    tasks.forEach(task => {
-                        if (task.predecessors && task.predecessors.length > 0) {
-                            let maxDate = new Date(0);
-                            
-                            task.predecessors.forEach(pred => {
-                                const predTask = taskMap.get(pred.taskId);
-                                if (predTask && predTask.earlyFinish) {
-                                    const lagDays = pred.lag || 0;
-                                    const predDate = this.addWorkingDays(predTask.earlyFinish, lagDays);
-                                    if (predDate > maxDate) maxDate = predDate;
-                                }
-                            });
-                            
-                            if (maxDate > new Date(0) && (!task.earlyStart || maxDate > task.earlyStart)) {
-                                task.earlyStart = maxDate;
-                                task.earlyFinish = this.addWorkingDays(task.earlyStart, task.duration);
-                                changed = true;
-                            }
-                        }
-                    });
-                }
-                
-                // Calculate float and critical path
-                const projectEnd = Math.max(...tasks.map(t => t.earlyFinish?.getTime() || 0));
-                
-                tasks.forEach(task => {
-                    task.lateFinish = new Date(projectEnd);
-                    task.lateStart = this.addWorkingDays(task.lateFinish, -task.duration);
-                    task.totalFloat = this.getWorkingDaysBetween(task.earlyFinish, task.lateFinish);
-                    task.isCritical = task.totalFloat === 0;
-                });
-                
-                return tasks;
-            }
-            
-            formatDate(date) {
-                if (!date) return '';
-                const d = new Date(date);
-                const day = String(d.getDate()).padStart(2, '0');
-                const month = String(d.getMonth() + 1).padStart(2, '0');
-                const year = d.getFullYear();
-                return `${day}/${month}/${year}`;
-            }
-            
-            parseDate(str) {
-                if (!str) return null;
-                const parts = str.split('/');
-                if (parts.length !== 3) return null;
-                return new Date(parts[2], parts[1] - 1, parts[0]);
-            }
-            
-            parseDuration(str) {
-                if (!str) return 0;
-                const match = str.match(/^(\d+)([dhw])?$/);
-                if (!match) return parseInt(str) || 0;
-                
-                const value = parseInt(match[1]);
-                const unit = match[2] || 'd';
-                
-                switch(unit) {
-                    case 'h': return value / 8; // 8 hours = 1 day
-                    case 'w': return value * 5; // 5 days = 1 week
-                    default: return value;
-                }
-            }
-        }
-        
-        const scheduler = new SchedulingEngine();
-        
-        // UI Components
+        // Core Application
         class GanttApp {
             constructor() {
-                this.root = document.getElementById('root');
+                this.state = {
+                    theme: localStorage.getItem('theme') || 'light',
+                    tasks: [],
+                    selectedTasks: new Set(),
+                    baselines: new Map(),
+                    zoom: 100,
+                    showBaselines: false,
+                    showCritical: false,
+                    showNonWorking: true,
+                    workingDays: [1, 2, 3, 4, 5], // Mon-Fri
+                    workingHours: { start: 9, end: 17 },
+                    holidays: [],
+                    dateFormat: 'dd/mm/yyyy',
+                    firstDayOfWeek: 1, // Monday
+                    columns: [
+                        { id: 'mode', label: 'Mode', width: 40, visible: true },
+                        { id: 'id', label: 'ID', width: 50, visible: true },
+                        { id: 'wbs', label: 'WBS', width: 60, visible: true },
+                        { id: 'name', label: 'Task Name', width: 250, visible: true, flex: true },
+                        { id: 'duration', label: 'Duration', width: 70, visible: true },
+                        { id: 'start', label: 'Start', width: 100, visible: true },
+                        { id: 'finish', label: 'Finish', width: 100, visible: true },
+                        { id: 'predecessors', label: 'Predecessors', width: 120, visible: true },
+                        { id: 'resources', label: 'Resources', width: 120, visible: true },
+                        { id: 'complete', label: '% Complete', width: 70, visible: true },
+                        { id: 'constraint', label: 'Constraint', width: 80, visible: true },
+                        { id: 'constraintDate', label: 'Constraint Date', width: 100, visible: true },
+                        { id: 'baselineStart', label: 'Baseline Start', width: 100, visible: true },
+                        { id: 'baselineFinish', label: 'Baseline Finish', width: 100, visible: true },
+                        { id: 'slack', label: 'Slack', width: 60, visible: true },
+                        { id: 'cost', label: 'Cost', width: 80, visible: true },
+                        { id: 'notes', label: 'Notes', width: 200, visible: true }
+                    ]
+                };
+                
+                this.scheduler = new TaskScheduler();
+                this.chartRenderer = null;
+                this.gridManager = null;
+                this.undoStack = [];
+                this.redoStack = [];
+                this.clipboard = null;
+                this.dragState = null;
+                this.linkingState = null;
+                
                 this.init();
             }
             
             init() {
+                // Set theme
+                document.documentElement.setAttribute('data-theme', this.state.theme);
+                
                 // Load saved data
                 this.loadFromStorage();
                 
-                // Set theme
-                document.documentElement.setAttribute('data-theme', state.theme);
+                // Initialize components
+                this.gridManager = new GridManager(this);
+                this.chartRenderer = new ChartRenderer(this);
+                
+                // Setup event listeners
+                this.setupEventListeners();
                 
                 // Initial render
                 this.render();
                 
-                // Autosave
-                setInterval(() => this.autosave(), 2000);
-                
-                // Keyboard shortcuts
-                document.addEventListener('keydown', this.handleKeyboard.bind(this));
+                // Auto-save
+                setInterval(() => this.autoSave(), 2000);
             }
             
             loadFromStorage() {
@@ -678,70 +1045,271 @@
                 if (saved) {
                     try {
                         const data = JSON.parse(saved);
-                        state.tasks = data.tasks || [];
-                        state.resources = data.resources || [];
-                        state.calendars = data.calendars || [];
+                        this.state.tasks = data.tasks || [];
+                        this.state.baselines = new Map(data.baselines || []);
                     } catch(e) {
                         console.error('Failed to load saved data');
                     }
                 }
                 
-                // Load demo data if empty
-                if (state.tasks.length === 0) {
-                    state.tasks = this.generateDemoTasks();
+                // Demo data if empty
+                if (this.state.tasks.length === 0) {
+                    this.state.tasks = this.generateDemoTasks();
                 }
             }
             
             generateDemoTasks() {
                 return [
-                    { id: '1', wbs: '1', name: 'Project Setup', duration: 5, start: new Date('2025-01-06'), percentComplete: 100 },
-                    { id: '2', wbs: '2', name: 'Design Phase', duration: 10, start: new Date('2025-01-13'), percentComplete: 75, isSummary: true },
-                    { id: '3', wbs: '2.1', parentId: '2', name: 'UI Design', duration: 5, start: new Date('2025-01-13'), percentComplete: 100 },
-                    { id: '4', wbs: '2.2', parentId: '2', name: 'Database Design', duration: 5, start: new Date('2025-01-20'), percentComplete: 50, predecessors: [{taskId: '3', type: 'FS', lag: 0}] },
-                    { id: '5', wbs: '3', name: 'Development', duration: 20, start: new Date('2025-01-27'), percentComplete: 30, isSummary: true },
-                    { id: '6', wbs: '3.1', parentId: '5', name: 'Backend Development', duration: 15, start: new Date('2025-01-27'), percentComplete: 40 },
-                    { id: '7', wbs: '3.2', parentId: '5', name: 'Frontend Development', duration: 15, start: new Date('2025-01-27'), percentComplete: 20 },
-                    { id: '8', wbs: '4', name: 'Testing', duration: 10, start: new Date('2025-02-24'), percentComplete: 0, predecessors: [{taskId: '6', type: 'FS', lag: 0}, {taskId: '7', type: 'FS', lag: 0}] },
-                    { id: '9', wbs: '5', name: 'Deployment', duration: 3, start: new Date('2025-03-10'), percentComplete: 0, predecessors: [{taskId: '8', type: 'FS', lag: 0}] },
-                    { id: '10', wbs: '6', name: 'Project Complete', duration: 0, start: new Date('2025-03-13'), percentComplete: 0, isMilestone: true, predecessors: [{taskId: '9', type: 'FS', lag: 0}] }
+                    {
+                        id: '1',
+                        wbs: '1',
+                        name: 'Project Initiation',
+                        duration: 5,
+                        start: new Date('2025-01-06'),
+                        mode: 'auto',
+                        percentComplete: 100,
+                        resources: 'PM',
+                        cost: 5000
+                    },
+                    {
+                        id: '2',
+                        wbs: '2',
+                        name: 'Requirements Analysis',
+                        duration: 10,
+                        start: new Date('2025-01-13'),
+                        mode: 'auto',
+                        percentComplete: 80,
+                        isSummary: true,
+                        resources: 'BA Team'
+                    },
+                    {
+                        id: '3',
+                        wbs: '2.1',
+                        parentId: '2',
+                        name: 'Gather Requirements',
+                        duration: 5,
+                        start: new Date('2025-01-13'),
+                        mode: 'auto',
+                        percentComplete: 100,
+                        resources: 'BA1, BA2',
+                        cost: 8000
+                    },
+                    {
+                        id: '4',
+                        wbs: '2.2',
+                        parentId: '2',
+                        name: 'Document Requirements',
+                        duration: 5,
+                        start: new Date('2025-01-20'),
+                        mode: 'auto',
+                        percentComplete: 60,
+                        predecessors: '3FS+0d',
+                        resources: 'BA1',
+                        cost: 4000
+                    },
+                    {
+                        id: '5',
+                        wbs: '3',
+                        name: 'Design Phase',
+                        duration: 15,
+                        start: new Date('2025-01-27'),
+                        mode: 'auto',
+                        percentComplete: 40,
+                        isSummary: true
+                    },
+                    {
+                        id: '6',
+                        wbs: '3.1',
+                        parentId: '5',
+                        name: 'Technical Design',
+                        duration: 10,
+                        start: new Date('2025-01-27'),
+                        mode: 'auto',
+                        percentComplete: 50,
+                        predecessors: '4FS+0d',
+                        resources: 'Architect',
+                        cost: 12000
+                    },
+                    {
+                        id: '7',
+                        wbs: '3.2',
+                        parentId: '5',
+                        name: 'UI/UX Design',
+                        duration: 8,
+                        start: new Date('2025-01-27'),
+                        mode: 'auto',
+                        percentComplete: 30,
+                        resources: 'Designer',
+                        cost: 9600
+                    },
+                    {
+                        id: '8',
+                        wbs: '4',
+                        name: 'Development',
+                        duration: 30,
+                        start: new Date('2025-02-17'),
+                        mode: 'auto',
+                        percentComplete: 10,
+                        isSummary: true
+                    },
+                    {
+                        id: '9',
+                        wbs: '4.1',
+                        parentId: '8',
+                        name: 'Backend Development',
+                        duration: 25,
+                        start: new Date('2025-02-17'),
+                        mode: 'auto',
+                        percentComplete: 15,
+                        predecessors: '6FS+0d',
+                        resources: 'Dev Team A',
+                        cost: 40000
+                    },
+                    {
+                        id: '10',
+                        wbs: '4.2',
+                        parentId: '8',
+                        name: 'Frontend Development',
+                        duration: 20,
+                        start: new Date('2025-02-24'),
+                        mode: 'auto',
+                        percentComplete: 5,
+                        predecessors: '7FS+5d',
+                        resources: 'Dev Team B',
+                        cost: 32000
+                    },
+                    {
+                        id: '11',
+                        wbs: '5',
+                        name: 'Testing Phase',
+                        duration: 15,
+                        start: new Date('2025-03-31'),
+                        mode: 'auto',
+                        percentComplete: 0,
+                        predecessors: '9FS+0d,10FS+0d',
+                        resources: 'QA Team',
+                        cost: 18000
+                    },
+                    {
+                        id: '12',
+                        wbs: '6',
+                        name: 'Deployment',
+                        duration: 3,
+                        start: new Date('2025-04-21'),
+                        mode: 'auto',
+                        percentComplete: 0,
+                        predecessors: '11FS+0d',
+                        constraint: 'FNLT',
+                        constraintDate: new Date('2025-04-25'),
+                        resources: 'DevOps',
+                        cost: 5000
+                    },
+                    {
+                        id: '13',
+                        wbs: '7',
+                        name: 'Go Live',
+                        duration: 0,
+                        start: new Date('2025-04-24'),
+                        mode: 'auto',
+                        percentComplete: 0,
+                        predecessors: '12FS+0d',
+                        isMilestone: true,
+                        resources: 'All Teams'
+                    }
                 ];
             }
             
-            autosave() {
-                if (!state.dirty) return;
+            setupEventListeners() {
+                // Keyboard shortcuts
+                document.addEventListener('keydown', this.handleKeyboard.bind(this));
                 
-                const data = {
-                    tasks: state.tasks,
-                    resources: state.resources,
-                    calendars: state.calendars,
-                    viewState: state.viewState
-                };
+                // Split view resizing
+                const handle = document.getElementById('split-handle');
+                let isResizing = false;
                 
-                localStorage.setItem('ganttData', JSON.stringify(data));
-                state.dirty = false;
-                state.lastSave = Date.now();
+                handle.addEventListener('mousedown', (e) => {
+                    isResizing = true;
+                    handle.classList.add('dragging');
+                });
                 
-                this.showToast('Saved', 'success');
-            }
-            
-            showToast(message, type = 'info') {
-                const container = document.querySelector('.toast-container') || this.createToastContainer();
-                const toast = document.createElement('div');
-                toast.className = `toast ${type}`;
-                toast.textContent = message;
-                container.appendChild(toast);
+                document.addEventListener('mousemove', (e) => {
+                    if (!isResizing) return;
+                    const container = document.getElementById('split-container');
+                    const left = document.getElementById('split-left');
+                    const newWidth = e.clientX - container.offsetLeft;
+                    const minWidth = 400;
+                    const maxWidth = container.offsetWidth * 0.7;
+                    
+                    if (newWidth >= minWidth && newWidth <= maxWidth) {
+                        left.style.width = newWidth + 'px';
+                        this.chartRenderer.resize();
+                    }
+                });
                 
-                setTimeout(() => toast.remove(), 3000);
-            }
-            
-            createToastContainer() {
-                const container = document.createElement('div');
-                container.className = 'toast-container';
-                document.body.appendChild(container);
-                return container;
+                document.addEventListener('mouseup', () => {
+                    if (isResizing) {
+                        isResizing = false;
+                        handle.classList.remove('dragging');
+                    }
+                });
+                
+                // Window resize
+                window.addEventListener('resize', () => {
+                    this.chartRenderer.resize();
+                });
             }
             
             handleKeyboard(e) {
+                // Enter - Add task below
+                if (e.key === 'Enter' && !e.ctrlKey && !e.shiftKey) {
+                    if (document.activeElement.tagName !== 'INPUT') {
+                        e.preventDefault();
+                        this.addTaskBelow();
+                    }
+                }
+                
+                // Delete - Delete selected tasks
+                if (e.key === 'Delete') {
+                    if (document.activeElement.tagName !== 'INPUT') {
+                        e.preventDefault();
+                        this.deleteSelectedTasks();
+                    }
+                }
+                
+                // F2 - Edit cell
+                if (e.key === 'F2') {
+                    e.preventDefault();
+                    this.editCurrentCell();
+                }
+                
+                // Tab/Shift+Tab - Indent/Outdent
+                if (e.key === 'Tab' && document.activeElement.classList.contains('cell-name')) {
+                    e.preventDefault();
+                    if (e.shiftKey) {
+                        this.outdentTasks();
+                    } else {
+                        this.indentTasks();
+                    }
+                }
+                
+                // Alt+Up/Down - Move row
+                if (e.altKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
+                    e.preventDefault();
+                    this.moveRow(e.key === 'ArrowUp' ? -1 : 1);
+                }
+                
+                // Ctrl+L - Link tasks
+                if (e.ctrlKey && e.key === 'l') {
+                    e.preventDefault();
+                    this.linkSelectedTasks();
+                }
+                
+                // Ctrl+U - Unlink tasks
+                if (e.ctrlKey && e.key === 'u') {
+                    e.preventDefault();
+                    this.unlinkSelectedTasks();
+                }
+                
                 // Ctrl+Z - Undo
                 if (e.ctrlKey && e.key === 'z') {
                     e.preventDefault();
@@ -754,704 +1322,1161 @@
                     this.redo();
                 }
                 
-                // Ctrl+S - Save
-                if (e.ctrlKey && e.key === 's') {
+                // Alt+G - Focus chart
+                if (e.altKey && e.key === 'g') {
                     e.preventDefault();
-                    this.autosave();
+                    document.getElementById('chart-canvas').focus();
                 }
                 
-                // Delete - Remove task
-                if (e.key === 'Delete' && state.selectedTasks.size > 0) {
+                // Alt+T - Focus toolbar
+                if (e.altKey && e.key === 't') {
                     e.preventDefault();
-                    this.deleteSelectedTasks();
-                }
-            }
-            
-            undo() {
-                // Implement undo logic
-                this.showToast('Undo', 'info');
-            }
-            
-            redo() {
-                // Implement redo logic
-                this.showToast('Redo', 'info');
-            }
-            
-            deleteSelectedTasks() {
-                if (confirm('Delete selected tasks?')) {
-                    state.tasks = state.tasks.filter(t => !state.selectedTasks.has(t.id));
-                    state.selectedTasks.clear();
-                    state.dirty = true;
-                    this.render();
+                    document.querySelector('.toolbar-btn').focus();
                 }
             }
             
             render() {
-                // Calculate schedule
-                state.tasks = scheduler.calculateSchedule(state.tasks);
+                // Schedule tasks
+                this.state.tasks = this.scheduler.schedule(this.state.tasks, this.state);
                 
-                this.root.innerHTML = `
-                    <div class="app">
-                        ${this.renderHeader()}
-                        ${this.renderTabs()}
-                        ${this.renderToolbar()}
-                        <div class="main">
-                            ${this.renderContent()}
-                        </div>
-                    </div>
-                `;
+                // Render grid
+                this.gridManager.render();
                 
-                // Attach event handlers
-                this.attachEventHandlers();
+                // Render chart
+                this.chartRenderer.render();
+                
+                // Update status
+                this.updateStatus();
             }
             
-            renderHeader() {
-                return `
-                    <header class="header">
-                        <a href="#main" class="sr-only">Skip to content</a>
-                        <h1>Gantt Next</h1>
-                        <select class="form-input" style="width: 200px;">
-                            <option>Sample Project</option>
-                        </select>
-                        <div class="header-actions">
-                            <button class="btn" onclick="app.toggleTheme()" aria-label="Toggle theme">
-                                ${state.theme === 'light' ? '🌙' : '☀️'} Theme
-                            </button>
-                            <button class="btn" aria-label="Help">Help</button>
-                        </div>
-                    </header>
-                `;
+            updateStatus() {
+                const selected = this.state.selectedTasks.size;
+                const selectionText = selected > 0 ? `${selected} tasks selected` : '';
+                document.getElementById('selection-count').textContent = selectionText;
+                
+                const statusText = this.getStatusText();
+                document.getElementById('status-text').textContent = statusText;
             }
             
-            renderTabs() {
-                const tabs = ['Gantt', 'Board', 'Calendar', 'List', 'Dashboard'];
-                return `
-                    <nav class="tabs" role="tablist">
-                        ${tabs.map(tab => `
-                            <button 
-                                class="tab ${state.activeTab === tab.toLowerCase() ? 'active' : ''}"
-                                role="tab"
-                                aria-selected="${state.activeTab === tab.toLowerCase()}"
-                                onclick="app.switchTab('${tab.toLowerCase()}')"
-                            >
-                                ${tab}
-                            </button>
-                        `).join('')}
-                    </nav>
-                `;
-            }
-            
-            renderToolbar() {
-                return `
-                    <div class="toolbar" role="toolbar">
-                        <div class="toolbar-group">
-                            <button class="btn" onclick="app.newTask()">➕ Add Task</button>
-                            <button class="btn" onclick="app.deleteSelectedTasks()" ${state.selectedTasks.size === 0 ? 'disabled' : ''}>🗑️ Delete</button>
-                        </div>
-                        <div class="toolbar-group">
-                            <button class="btn" onclick="app.undo()">↶ Undo</button>
-                            <button class="btn" onclick="app.redo()">↷ Redo</button>
-                        </div>
-                        <div class="toolbar-group">
-                            <button class="btn" onclick="app.zoomIn()">🔍+ Zoom In</button>
-                            <button class="btn" onclick="app.zoomOut()">🔍- Zoom Out</button>
-                            <button class="btn" onclick="app.fitToScreen()">⬚ Fit</button>
-                        </div>
-                        <div class="toolbar-group">
-                            <button class="btn" onclick="app.importCSV()">📥 Import</button>
-                            <button class="btn" onclick="app.exportPDF()">📄 Export PDF</button>
-                        </div>
-                    </div>
-                `;
-            }
-            
-            renderContent() {
-                switch(state.activeTab) {
-                    case 'gantt':
-                        return this.renderGanttView();
-                    case 'board':
-                        return this.renderBoardView();
-                    case 'calendar':
-                        return this.renderCalendarView();
-                    case 'list':
-                        return this.renderListView();
-                    case 'dashboard':
-                        return this.renderDashboardView();
-                    default:
-                        return this.renderGanttView();
+            getStatusText() {
+                const criticalCount = this.state.tasks.filter(t => t.isCritical).length;
+                if (criticalCount > 0 && this.state.showCritical) {
+                    return `${criticalCount} critical tasks`;
                 }
+                return 'Ready';
             }
             
-            renderGanttView() {
-                if (state.tasks.length === 0) {
-                    return `
-                        <div class="empty-state">
-                            <h3>No tasks yet</h3>
-                            <p>Get started by adding your first task</p>
-                            <button class="btn btn-primary" onclick="app.newTask()">Add First Task</button>
-                        </div>
-                    `;
-                }
-                
-                return `
-                    <div class="split-view" id="main">
-                        <div class="split-left">
-                            ${this.renderGrid()}
-                        </div>
-                        <div class="split-handle"></div>
-                        <div class="split-right">
-                            ${this.renderGanttChart()}
-                        </div>
-                    </div>
-                `;
-            }
-            
-            renderGrid() {
-                const columns = [
-                    { key: 'wbs', label: 'WBS', width: 60 },
-                    { key: 'name', label: 'Task Name', width: 200, flex: true },
-                    { key: 'duration', label: 'Duration', width: 80 },
-                    { key: 'start', label: 'Start', width: 100 },
-                    { key: 'finish', label: 'Finish', width: 100 },
-                    { key: 'progress', label: 'Progress', width: 80 }
-                ];
-                
-                return `
-                    <div class="grid-container">
-                        <div class="grid-header">
-                            ${columns.map(col => `
-                                <div class="grid-cell cell-${col.key}" style="${col.flex ? 'flex: 1;' : `width: ${col.width}px;`}">
-                                    ${col.label}
-                                </div>
-                            `).join('')}
-                        </div>
-                        <div class="grid-body">
-                            ${state.tasks.map(task => this.renderGridRow(task, columns)).join('')}
-                        </div>
-                    </div>
-                `;
-            }
-            
-            renderGridRow(task, columns) {
-                const isSelected = state.selectedTasks.has(task.id);
-                const rowClass = `grid-row ${isSelected ? 'selected' : ''} ${task.isSummary ? 'summary' : ''}`;
-                
-                return `
-                    <div class="${rowClass}" data-task-id="${task.id}" onclick="app.selectTask('${task.id}', event)">
-                        ${columns.map(col => {
-                            let value = '';
-                            switch(col.key) {
-                                case 'wbs':
-                                    value = task.wbs || '';
-                                    break;
-                                case 'name':
-                                    const indent = (task.wbs?.split('.').length - 1) * 20;
-                                    value = `<span style="margin-left: ${indent}px">${task.isSummary ? '▼ ' : ''}${task.name}</span>`;
-                                    break;
-                                case 'duration':
-                                    value = task.duration + 'd';
-                                    break;
-                                case 'start':
-                                    value = scheduler.formatDate(task.start || task.earlyStart);
-                                    break;
-                                case 'finish':
-                                    value = scheduler.formatDate(task.earlyFinish || scheduler.addWorkingDays(task.start, task.duration));
-                                    break;
-                                case 'progress':
-                                    value = (task.percentComplete || 0) + '%';
-                                    break;
-                            }
-                            
-                            return `
-                                <div class="grid-cell cell-${col.key} ${col.key !== 'wbs' ? 'editable' : ''}" 
-                                     style="${col.flex ? 'flex: 1;' : `width: ${col.width}px;`}"
-                                     ondblclick="app.editCell('${task.id}', '${col.key}', event)">
-                                    ${value}
-                                </div>
-                            `;
-                        }).join('')}
-                    </div>
-                `;
-            }
-            
-            renderGanttChart() {
-                return `
-                    <div class="gantt-container">
-                        <canvas id="gantt-canvas" class="gantt-canvas"></canvas>
-                    </div>
-                `;
-            }
-            
-            renderBoardView() {
-                return `
-                    <div class="empty-state">
-                        <h3>No status set</h3>
-                        <p>Set task statuses to use the board view</p>
-                        <button class="btn btn-primary">Add Status</button>
-                    </div>
-                `;
-            }
-            
-            renderCalendarView() {
-                return `
-                    <div class="empty-state">
-                        <h3>No tasks with dates</h3>
-                        <p>Set start dates on tasks to see them in calendar</p>
-                    </div>
-                `;
-            }
-            
-            renderListView() {
-                return `
-                    <div style="padding: var(--s-16);">
-                        <h2>Task List</h2>
-                        <table style="width: 100%; margin-top: var(--s-16);">
-                            <thead>
-                                <tr>
-                                    <th>WBS</th>
-                                    <th>Name</th>
-                                    <th>Duration</th>
-                                    <th>Start</th>
-                                    <th>Finish</th>
-                                    <th>Progress</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${state.tasks.map(task => `
-                                    <tr>
-                                        <td>${task.wbs || ''}</td>
-                                        <td>${task.name}</td>
-                                        <td>${task.duration}d</td>
-                                        <td>${scheduler.formatDate(task.start)}</td>
-                                        <td>${scheduler.formatDate(task.earlyFinish)}</td>
-                                        <td>${task.percentComplete || 0}%</td>
-                                    </tr>
-                                `).join('')}
-                            </tbody>
-                        </table>
-                    </div>
-                `;
-            }
-            
-            renderDashboardView() {
-                const tasksByStatus = {
-                    'Not Started': state.tasks.filter(t => !t.percentComplete || t.percentComplete === 0).length,
-                    'In Progress': state.tasks.filter(t => t.percentComplete > 0 && t.percentComplete < 100).length,
-                    'Complete': state.tasks.filter(t => t.percentComplete === 100).length
+            // Toolbar Actions
+            showMenu(menu) {
+                const menus = {
+                    file: [
+                        { label: 'New Project', action: () => this.newProject() },
+                        { label: 'Open JSON', action: () => this.openJSON() },
+                        { label: 'Save JSON', action: () => this.saveJSON() },
+                        { separator: true },
+                        { label: 'Import CSV', action: () => this.importCSV() },
+                        { label: 'Export CSV', action: () => this.exportCSV() },
+                        { label: 'Export PDF', action: () => this.exportPDF() }
+                    ],
+                    edit: [
+                        { label: 'Undo', action: () => this.undo(), shortcut: 'Ctrl+Z' },
+                        { label: 'Redo', action: () => this.redo(), shortcut: 'Ctrl+Y' },
+                        { separator: true },
+                        { label: 'Cut', action: () => this.cut(), shortcut: 'Ctrl+X' },
+                        { label: 'Copy', action: () => this.copy(), shortcut: 'Ctrl+C' },
+                        { label: 'Paste', action: () => this.paste(), shortcut: 'Ctrl+V' },
+                        { separator: true },
+                        { label: 'Delete Row', action: () => this.deleteSelectedTasks(), shortcut: 'Del' }
+                    ],
+                    view: [
+                        { label: 'Zoom In', action: () => this.zoomIn() },
+                        { label: 'Zoom Out', action: () => this.zoomOut() },
+                        { label: 'Fit Project', action: () => this.fitProject() },
+                        { label: 'Fit Selection', action: () => this.fitSelection() },
+                        { separator: true },
+                        { label: 'Show Baselines', action: () => this.toggleBaselines(), checked: this.state.showBaselines },
+                        { label: 'Show Critical', action: () => this.toggleCritical(), checked: this.state.showCritical },
+                        { label: 'Show Non-working Days', action: () => this.toggleNonWorking(), checked: this.state.showNonWorking }
+                    ],
+                    insert: [
+                        { label: 'Add Task Below', action: () => this.addTaskBelow() },
+                        { label: 'Add Milestone', action: () => this.addMilestone() },
+                        { label: 'Add Summary', action: () => this.addSummary() }
+                    ],
+                    task: [
+                        { label: 'Indent', action: () => this.indentTasks(), shortcut: 'Tab' },
+                        { label: 'Outdent', action: () => this.outdentTasks(), shortcut: 'Shift+Tab' },
+                        { label: 'Duplicate', action: () => this.duplicateTasks() },
+                        { separator: true },
+                        { label: 'Mark 25%', action: () => this.markProgress(25) },
+                        { label: 'Mark 50%', action: () => this.markProgress(50) },
+                        { label: 'Mark 75%', action: () => this.markProgress(75) },
+                        { label: 'Mark 100%', action: () => this.markProgress(100) },
+                        { separator: true },
+                        { label: 'Set Constraint', submenu: [
+                            { label: 'As Soon As Possible', action: () => this.setConstraint('ASAP') },
+                            { label: 'As Late As Possible', action: () => this.setConstraint('ALAP') },
+                            { label: 'Start No Earlier Than', action: () => this.setConstraint('SNET') },
+                            { label: 'Finish No Later Than', action: () => this.setConstraint('FNLT') },
+                            { label: 'Must Start On', action: () => this.setConstraint('MSO') },
+                            { label: 'Must Finish On', action: () => this.setConstraint('MFO') }
+                        ]}
+                    ],
+                    link: [
+                        { label: 'Link Tasks', action: () => this.linkSelectedTasks(), shortcut: 'Ctrl+L' },
+                        { label: 'Unlink Tasks', action: () => this.unlinkSelectedTasks(), shortcut: 'Ctrl+U' },
+                        { label: 'Link Type', action: () => this.editLinkType() },
+                        { label: 'Lag Editor', action: () => this.editLag() }
+                    ],
+                    baseline: [
+                        { label: 'Set Baseline', action: () => this.setBaseline() },
+                        { label: 'Clear Baseline', action: () => this.clearBaseline() },
+                        { label: 'Reset to Baseline', action: () => this.resetToBaseline() }
+                    ],
+                    export: [
+                        { label: 'PDF A4', action: () => this.exportPDF('A4') },
+                        { label: 'PNG', action: () => this.exportPNG() },
+                        { label: 'CSV', action: () => this.exportCSV() },
+                        { label: 'JSON', action: () => this.exportJSON() }
+                    ]
                 };
                 
-                return `
-                    <div style="padding: var(--s-16);">
-                        <h2>Project Dashboard</h2>
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--s-16); margin-top: var(--s-16);">
-                            <div style="background: var(--surface); padding: var(--s-16); border-radius: var(--r-input); border: 1px solid var(--border);">
-                                <h3>Tasks by Status</h3>
-                                <div style="margin-top: var(--s-8);">
-                                    <div>Not Started: ${tasksByStatus['Not Started']}</div>
-                                    <div>In Progress: ${tasksByStatus['In Progress']}</div>
-                                    <div>Complete: ${tasksByStatus['Complete']}</div>
-                                </div>
-                            </div>
-                            <div style="background: var(--surface); padding: var(--s-16); border-radius: var(--r-input); border: 1px solid var(--border);">
-                                <h3>Critical Tasks</h3>
-                                <div style="margin-top: var(--s-8);">
-                                    ${state.tasks.filter(t => t.isCritical).length} critical tasks
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                `;
+                // Show dropdown menu
+                this.showDropdownMenu(menus[menu] || []);
             }
             
-            attachEventHandlers() {
-                // Draw Gantt chart if on that view
-                if (state.activeTab === 'gantt' && state.tasks.length > 0) {
-                    setTimeout(() => this.drawGanttChart(), 100);
-                }
+            showDropdownMenu(items) {
+                // Implementation for dropdown menu display
+                console.log('Menu items:', items);
+            }
+            
+            // Actions
+            addTaskBelow() {
+                const selected = Array.from(this.state.selectedTasks);
+                const insertIndex = selected.length > 0 ? 
+                    this.state.tasks.findIndex(t => t.id === selected[selected.length - 1]) + 1 : 
+                    this.state.tasks.length;
                 
-                // Split view resizing
-                const handle = document.querySelector('.split-handle');
-                if (handle) {
-                    let isResizing = false;
-                    handle.addEventListener('mousedown', () => isResizing = true);
-                    document.addEventListener('mousemove', (e) => {
-                        if (!isResizing) return;
-                        const splitLeft = document.querySelector('.split-left');
-                        if (splitLeft) {
-                            splitLeft.style.width = e.clientX + 'px';
-                        }
+                const newTask = {
+                    id: 'task_' + Date.now(),
+                    wbs: this.generateWBS(insertIndex),
+                    name: 'New Task',
+                    duration: 5,
+                    start: new Date(),
+                    mode: 'auto',
+                    percentComplete: 0
+                };
+                
+                this.state.tasks.splice(insertIndex, 0, newTask);
+                this.saveUndo();
+                this.render();
+                this.showToast('Added new task');
+            }
+            
+            deleteSelectedTasks() {
+                if (this.state.selectedTasks.size === 0) return;
+                
+                if (confirm('This will remove all links. Delete anyway?')) {
+                    this.saveUndo();
+                    this.state.tasks = this.state.tasks.filter(t => !this.state.selectedTasks.has(t.id));
+                    this.state.selectedTasks.clear();
+                    this.render();
+                    this.showToast('Deleted tasks');
+                }
+            }
+            
+            setBaseline() {
+                this.state.tasks.forEach(task => {
+                    this.state.baselines.set(task.id, {
+                        start: task.start,
+                        finish: task.finish,
+                        duration: task.duration,
+                        cost: task.cost || 0
                     });
-                    document.addEventListener('mouseup', () => isResizing = false);
+                });
+                this.showToast('Baseline set', 'success');
+                this.render();
+            }
+            
+            toggleTheme() {
+                this.state.theme = this.state.theme === 'light' ? 'dark' : 'light';
+                document.documentElement.setAttribute('data-theme', this.state.theme);
+                localStorage.setItem('theme', this.state.theme);
+            }
+            
+            showToast(message, type = 'info') {
+                const container = document.getElementById('toast-container');
+                const toast = document.createElement('div');
+                toast.className = `toast ${type}`;
+                toast.textContent = message;
+                container.appendChild(toast);
+                
+                setTimeout(() => toast.remove(), 3000);
+            }
+            
+            saveUndo() {
+                this.undoStack.push(JSON.stringify(this.state.tasks));
+                this.redoStack = [];
+            }
+            
+            undo() {
+                if (this.undoStack.length === 0) return;
+                this.redoStack.push(JSON.stringify(this.state.tasks));
+                this.state.tasks = JSON.parse(this.undoStack.pop());
+                this.render();
+                this.showToast('Undo');
+            }
+            
+            redo() {
+                if (this.redoStack.length === 0) return;
+                this.undoStack.push(JSON.stringify(this.state.tasks));
+                this.state.tasks = JSON.parse(this.redoStack.pop());
+                this.render();
+                this.showToast('Redo');
+            }
+            
+            autoSave() {
+                const data = {
+                    tasks: this.state.tasks,
+                    baselines: Array.from(this.state.baselines.entries())
+                };
+                localStorage.setItem('ganttData', JSON.stringify(data));
+            }
+            
+            generateWBS(index) {
+                // Generate appropriate WBS based on position
+                return (index + 1).toString();
+            }
+            
+            // Zoom controls
+            zoomIn() {
+                this.state.zoom = Math.min(200, this.state.zoom + 25);
+                document.querySelector('.zoom-value').textContent = this.state.zoom + '%';
+                this.chartRenderer.render();
+            }
+            
+            zoomOut() {
+                this.state.zoom = Math.max(25, this.state.zoom - 25);
+                document.querySelector('.zoom-value').textContent = this.state.zoom + '%';
+                this.chartRenderer.render();
+            }
+            
+            fitProject() {
+                // Calculate zoom to fit all tasks
+                this.state.zoom = 100;
+                document.querySelector('.zoom-value').textContent = '100%';
+                this.chartRenderer.render();
+                this.showToast('Fit project');
+            }
+            
+            goToToday() {
+                // Scroll chart to today
+                this.chartRenderer.scrollToToday();
+                this.showToast('Moved to today');
+            }
+            
+            showSettings() {
+                // Show settings dialog
+                console.log('Settings');
+            }
+            
+            closeDrawer() {
+                document.getElementById('task-drawer').classList.remove('open');
+            }
+        }
+        
+        // Task Scheduler
+        class TaskScheduler {
+            schedule(tasks, state) {
+                const scheduled = [...tasks];
+                
+                // Calculate dates based on dependencies
+                scheduled.forEach(task => {
+                    if (task.mode === 'manual') return;
+                    
+                    // Parse predecessors
+                    const deps = this.parsePredecessors(task.predecessors);
+                    if (deps.length > 0) {
+                        let maxDate = new Date(0);
+                        
+                        deps.forEach(dep => {
+                            const predTask = scheduled.find(t => t.id === dep.taskId);
+                            if (predTask) {
+                                const depDate = this.calculateDependencyDate(predTask, dep, state);
+                                if (depDate > maxDate) maxDate = depDate;
+                            }
+                        });
+                        
+                        if (maxDate > new Date(0)) {
+                            task.start = this.nextWorkingDay(maxDate, state);
+                        }
+                    }
+                    
+                    // Calculate finish
+                    task.finish = this.addWorkingDays(task.start, task.duration, state);
+                    
+                    // Apply constraints
+                    if (task.constraint && task.constraintDate) {
+                        this.applyConstraint(task, state);
+                    }
+                });
+                
+                // Calculate critical path
+                this.calculateCriticalPath(scheduled, state);
+                
+                // Roll up summary tasks
+                this.rollUpSummaries(scheduled);
+                
+                return scheduled;
+            }
+            
+            parsePredecessors(predecessorString) {
+                if (!predecessorString) return [];
+                
+                const deps = [];
+                const parts = predecessorString.split(',');
+                
+                parts.forEach(part => {
+                    const match = part.trim().match(/^(\d+)([A-Z]{2})([+-]?\d+[dhw]?)?$/i);
+                    if (match) {
+                        deps.push({
+                            taskId: match[1],
+                            type: match[2].toUpperCase(),
+                            lag: this.parseLag(match[3] || '0d')
+                        });
+                    }
+                });
+                
+                return deps;
+            }
+            
+            parseLag(lagString) {
+                const match = lagString.match(/^([+-]?\d+)([dhw])?$/);
+                if (!match) return 0;
+                
+                const value = parseInt(match[1]);
+                const unit = match[2] || 'd';
+                
+                switch(unit) {
+                    case 'h': return value / 8; // 8 hours = 1 day
+                    case 'w': return value * 5; // 5 days = 1 week
+                    default: return value;
                 }
             }
             
-            drawGanttChart() {
-                const canvas = document.getElementById('gantt-canvas');
-                if (!canvas) return;
+            calculateDependencyDate(predTask, dep, state) {
+                let date;
                 
-                const container = canvas.parentElement;
-                const ctx = canvas.getContext('2d');
+                switch(dep.type) {
+                    case 'FS': // Finish-to-Start
+                        date = new Date(predTask.finish || predTask.start);
+                        break;
+                    case 'SS': // Start-to-Start
+                        date = new Date(predTask.start);
+                        break;
+                    case 'FF': // Finish-to-Finish
+                        date = new Date(predTask.finish || predTask.start);
+                        date = this.addWorkingDays(date, -dep.lag, state);
+                        break;
+                    case 'SF': // Start-to-Finish
+                        date = new Date(predTask.start);
+                        date = this.addWorkingDays(date, dep.lag, state);
+                        break;
+                    default:
+                        date = new Date(predTask.finish || predTask.start);
+                }
                 
-                // Set canvas size
-                canvas.width = container.clientWidth;
-                canvas.height = Math.max(600, state.tasks.length * 32 + 100);
-                
-                // Clear canvas
-                ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--surface');
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-                
-                // Calculate date range
-                const dates = state.tasks.flatMap(t => [t.start, t.earlyFinish]).filter(d => d);
-                if (dates.length === 0) return;
-                
-                const minDate = new Date(Math.min(...dates.map(d => d.getTime())));
-                const maxDate = new Date(Math.max(...dates.map(d => d.getTime())));
-                
-                // Add padding
-                minDate.setDate(minDate.getDate() - 7);
-                maxDate.setDate(maxDate.getDate() + 7);
-                
-                const totalDays = Math.ceil((maxDate - minDate) / (1000 * 60 * 60 * 24));
-                const dayWidth = canvas.width / totalDays;
-                
-                // Draw timeline header
-                ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--bg');
-                ctx.fillRect(0, 0, canvas.width, 60);
-                
-                // Draw month/week labels
-                ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--text');
-                ctx.font = '12px system-ui';
-                
-                const current = new Date(minDate);
-                let lastMonth = -1;
-                for (let i = 0; i < totalDays; i++) {
-                    const x = i * dayWidth;
-                    
-                    // Month labels
-                    if (current.getMonth() !== lastMonth) {
-                        lastMonth = current.getMonth();
-                        const monthName = current.toLocaleDateString('en-AU', { month: 'short', year: 'numeric' });
-                        ctx.fillText(monthName, x + 4, 20);
+                return this.addWorkingDays(date, dep.lag, state);
+            }
+            
+            applyConstraint(task, state) {
+                switch(task.constraint) {
+                    case 'SNET': // Start No Earlier Than
+                        if (task.start < task.constraintDate) {
+                            task.start = task.constraintDate;
+                            task.finish = this.addWorkingDays(task.start, task.duration, state);
+                        }
+                        break;
+                    case 'FNLT': // Finish No Later Than
+                        if (task.finish > task.constraintDate) {
+                            task.finish = task.constraintDate;
+                            task.start = this.addWorkingDays(task.finish, -task.duration, state);
+                        }
+                        break;
+                    case 'MSO': // Must Start On
+                        task.start = task.constraintDate;
+                        task.finish = this.addWorkingDays(task.start, task.duration, state);
+                        break;
+                    case 'MFO': // Must Finish On
+                        task.finish = task.constraintDate;
+                        task.start = this.addWorkingDays(task.finish, -task.duration, state);
+                        break;
+                }
+            }
+            
+            calculateCriticalPath(tasks, state) {
+                // Calculate total float for each task
+                tasks.forEach(task => {
+                    if (task.isMilestone || task.isSummary) {
+                        task.totalFloat = 0;
+                        task.isCritical = false;
+                        return;
                     }
                     
-                    // Day labels for week view
-                    if (dayWidth > 15) {
-                        ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--text-muted');
-                        ctx.font = '10px system-ui';
-                        ctx.fillText(current.getDate().toString(), x + 2, 45);
+                    // Simple critical path: tasks with no float
+                    const successors = tasks.filter(t => {
+                        const deps = this.parsePredecessors(t.predecessors);
+                        return deps.some(d => d.taskId === task.id);
+                    });
+                    
+                    if (successors.length === 0) {
+                        // No successors, calculate based on project end
+                        task.totalFloat = 0;
+                    } else {
+                        // Calculate float based on successors
+                        let minFloat = Infinity;
+                        successors.forEach(successor => {
+                            const slack = this.getWorkingDaysBetween(task.finish, successor.start, state);
+                            minFloat = Math.min(minFloat, slack);
+                        });
+                        task.totalFloat = Math.max(0, minFloat);
                     }
                     
-                    // Weekend shading
-                    if (current.getDay() === 0 || current.getDay() === 6) {
-                        ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--weekend');
-                        ctx.fillRect(x, 60, dayWidth, canvas.height - 60);
+                    task.isCritical = task.totalFloat === 0;
+                });
+            }
+            
+            rollUpSummaries(tasks) {
+                // Roll up values for summary tasks
+                const summaries = tasks.filter(t => t.isSummary);
+                
+                summaries.forEach(summary => {
+                    const children = tasks.filter(t => t.parentId === summary.id);
+                    if (children.length === 0) return;
+                    
+                    // Roll up dates
+                    summary.start = new Date(Math.min(...children.map(c => c.start?.getTime() || Infinity)));
+                    summary.finish = new Date(Math.max(...children.map(c => c.finish?.getTime() || 0)));
+                    
+                    // Roll up duration
+                    summary.duration = this.getWorkingDaysBetween(summary.start, summary.finish, {});
+                    
+                    // Roll up % complete
+                    const totalDuration = children.reduce((sum, c) => sum + (c.duration || 0), 0);
+                    const weightedComplete = children.reduce((sum, c) => 
+                        sum + ((c.percentComplete || 0) * (c.duration || 0)), 0);
+                    summary.percentComplete = totalDuration > 0 ? Math.round(weightedComplete / totalDuration) : 0;
+                    
+                    // Roll up cost
+                    summary.cost = children.reduce((sum, c) => sum + (c.cost || 0), 0);
+                });
+            }
+            
+            isWorkingDay(date, state) {
+                const day = date.getDay();
+                const dateStr = this.formatDateKey(date);
+                return state.workingDays.includes(day) && 
+                       !state.holidays.some(h => h.date === dateStr);
+            }
+            
+            nextWorkingDay(date, state) {
+                const newDate = new Date(date);
+                while (!this.isWorkingDay(newDate, state)) {
+                    newDate.setDate(newDate.getDate() + 1);
+                }
+                return newDate;
+            }
+            
+            addWorkingDays(startDate, days, state) {
+                if (!startDate) return null;
+                
+                const date = new Date(startDate);
+                const increment = days >= 0 ? 1 : -1;
+                let daysToAdd = Math.abs(days);
+                
+                while (daysToAdd > 0) {
+                    date.setDate(date.getDate() + increment);
+                    if (this.isWorkingDay(date, state)) {
+                        daysToAdd--;
                     }
-                    
-                    // Grid lines
-                    ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--border');
-                    ctx.lineWidth = 0.5;
-                    ctx.beginPath();
-                    ctx.moveTo(x, 60);
-                    ctx.lineTo(x, canvas.height);
-                    ctx.stroke();
-                    
+                }
+                
+                return date;
+            }
+            
+            getWorkingDaysBetween(start, end, state) {
+                if (!start || !end) return 0;
+                
+                let count = 0;
+                const current = new Date(start);
+                const endDate = new Date(end);
+                
+                while (current <= endDate) {
+                    if (this.isWorkingDay(current, state)) count++;
                     current.setDate(current.getDate() + 1);
                 }
                 
-                // Draw today line
-                const today = new Date();
-                if (today >= minDate && today <= maxDate) {
-                    const todayX = ((today - minDate) / (1000 * 60 * 60 * 24)) * dayWidth;
-                    ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--warning');
-                    ctx.lineWidth = 2;
-                    ctx.beginPath();
-                    ctx.moveTo(todayX, 60);
-                    ctx.lineTo(todayX, canvas.height);
-                    ctx.stroke();
+                return Math.max(0, count - 1);
+            }
+            
+            formatDateKey(date) {
+                const d = new Date(date);
+                const year = d.getFullYear();
+                const month = String(d.getMonth() + 1).padStart(2, '0');
+                const day = String(d.getDate()).padStart(2, '0');
+                return `${year}-${month}-${day}`;
+            }
+        }
+        
+        // Grid Manager
+        class GridManager {
+            constructor(app) {
+                this.app = app;
+            }
+            
+            render() {
+                this.renderHeader();
+                this.renderFilterRow();
+                this.renderBody();
+            }
+            
+            renderHeader() {
+                const header = document.getElementById('grid-header');
+                header.innerHTML = '';
+                
+                // Drag handle column
+                const dragCol = document.createElement('div');
+                dragCol.className = 'grid-cell header row-drag-handle';
+                dragCol.style.width = '20px';
+                header.appendChild(dragCol);
+                
+                // Render visible columns
+                this.app.state.columns.forEach(col => {
+                    if (!col.visible) return;
+                    
+                    const cell = document.createElement('div');
+                    cell.className = `grid-cell header cell-${col.id}`;
+                    cell.textContent = col.label;
+                    cell.style.width = col.flex ? 'auto' : col.width + 'px';
+                    if (col.flex) cell.style.flex = '1';
+                    
+                    header.appendChild(cell);
+                });
+            }
+            
+            renderFilterRow() {
+                const filter = document.getElementById('grid-filter');
+                filter.innerHTML = '';
+                
+                // Drag handle column
+                const dragCol = document.createElement('div');
+                dragCol.className = 'grid-cell filter';
+                dragCol.style.width = '20px';
+                filter.appendChild(dragCol);
+                
+                // Render filter inputs
+                this.app.state.columns.forEach(col => {
+                    if (!col.visible) return;
+                    
+                    const cell = document.createElement('div');
+                    cell.className = `grid-cell filter cell-${col.id}`;
+                    cell.style.width = col.flex ? 'auto' : col.width + 'px';
+                    if (col.flex) cell.style.flex = '1';
+                    
+                    const input = document.createElement('input');
+                    input.type = 'text';
+                    input.placeholder = 'Filter...';
+                    input.setAttribute('aria-label', `Filter ${col.label}`);
+                    
+                    cell.appendChild(input);
+                    filter.appendChild(cell);
+                });
+            }
+            
+            renderBody() {
+                const body = document.getElementById('grid-body');
+                body.innerHTML = '';
+                
+                if (this.app.state.tasks.length === 0) {
+                    body.innerHTML = `
+                        <div class="empty-state">
+                            <h3>No tasks yet</h3>
+                            <p>Add your first task to get started</p>
+                            <button class="toolbar-btn" onclick="app.addTaskBelow()">Add your first task</button>
+                        </div>
+                    `;
+                    return;
                 }
                 
-                // Draw task bars
-                state.tasks.forEach((task, index) => {
-                    const y = 80 + index * 32;
-                    const start = task.start || task.earlyStart;
-                    const finish = task.earlyFinish || scheduler.addWorkingDays(start, task.duration);
+                this.app.state.tasks.forEach(task => {
+                    const row = this.createRow(task);
+                    body.appendChild(row);
+                });
+            }
+            
+            createRow(task) {
+                const row = document.createElement('div');
+                row.className = 'grid-row';
+                row.dataset.taskId = task.id;
+                
+                if (this.app.state.selectedTasks.has(task.id)) {
+                    row.classList.add('selected');
+                }
+                
+                if (task.isSummary) {
+                    row.classList.add('summary');
+                }
+                
+                if (task.isCritical) {
+                    row.classList.add('critical');
+                }
+                
+                // Drag handle
+                const dragHandle = document.createElement('div');
+                dragHandle.className = 'grid-cell row-drag-handle';
+                dragHandle.innerHTML = '⋮⋮';
+                dragHandle.style.width = '20px';
+                row.appendChild(dragHandle);
+                
+                // Render cells
+                this.app.state.columns.forEach(col => {
+                    if (!col.visible) return;
                     
-                    if (!start || !finish) return;
+                    const cell = document.createElement('div');
+                    cell.className = `grid-cell cell-${col.id} editable`;
+                    cell.style.width = col.flex ? 'auto' : col.width + 'px';
+                    if (col.flex) cell.style.flex = '1';
                     
-                    const x = ((start - minDate) / (1000 * 60 * 60 * 24)) * dayWidth;
-                    const width = ((finish - start) / (1000 * 60 * 60 * 24)) * dayWidth;
+                    const value = this.getCellValue(task, col.id);
                     
-                    // Task bar
-                    if (task.isMilestone) {
-                        // Draw diamond for milestone
-                        ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--primary');
-                        ctx.beginPath();
-                        ctx.moveTo(x, y + 8);
-                        ctx.lineTo(x + 8, y);
-                        ctx.lineTo(x + 16, y + 8);
-                        ctx.lineTo(x + 8, y + 16);
-                        ctx.closePath();
-                        ctx.fill();
+                    if (col.id === 'name') {
+                        const indent = (task.wbs?.split('.').length - 1) * 20;
+                        cell.innerHTML = `
+                            <div class="task-name-wrapper">
+                                <span class="task-indent" style="width: ${indent}px"></span>
+                                ${task.isSummary ? '<span class="task-expand">▼</span>' : ''}
+                                <span>${value}</span>
+                            </div>
+                        `;
                     } else {
-                        // Regular task bar
-                        const barHeight = task.isSummary ? 12 : 20;
-                        const barY = y - barHeight/2 + 8;
-                        
-                        // Bar background
-                        ctx.fillStyle = task.isCritical ? 
-                            getComputedStyle(document.documentElement).getPropertyValue('--critical-bar') :
-                            getComputedStyle(document.documentElement).getPropertyValue('--primary');
-                        
-                        if (task.isSummary) {
-                            // Summary bar with brackets
-                            ctx.fillRect(x, barY, width, barHeight);
-                            ctx.fillRect(x, barY - 4, 4, barHeight + 8);
-                            ctx.fillRect(x + width - 4, barY - 4, 4, barHeight + 8);
+                        cell.textContent = value;
+                    }
+                    
+                    // Add event listeners
+                    cell.addEventListener('dblclick', () => this.startEdit(cell, task, col.id));
+                    
+                    row.appendChild(cell);
+                });
+                
+                // Row click handler
+                row.addEventListener('click', (e) => {
+                    if (e.ctrlKey) {
+                        if (this.app.state.selectedTasks.has(task.id)) {
+                            this.app.state.selectedTasks.delete(task.id);
                         } else {
-                            // Regular bar with rounded corners
-                            ctx.beginPath();
-                            ctx.roundRect(x, barY, width, barHeight, 4);
-                            ctx.fill();
-                            
-                            // Progress fill
-                            if (task.percentComplete > 0) {
-                                ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--success');
-                                const progressWidth = width * (task.percentComplete / 100);
-                                ctx.beginPath();
-                                ctx.roundRect(x, barY, progressWidth, barHeight, 4);
-                                ctx.fill();
-                            }
+                            this.app.state.selectedTasks.add(task.id);
                         }
+                    } else if (e.shiftKey) {
+                        // Range selection
+                        this.selectRange(task.id);
+                    } else {
+                        this.app.state.selectedTasks.clear();
+                        this.app.state.selectedTasks.add(task.id);
                     }
-                    
-                    // Task name
-                    ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--text');
-                    ctx.font = '12px system-ui';
-                    ctx.fillText(task.name, x + width + 8, y + 4);
+                    this.app.render();
                 });
                 
-                // Draw dependency lines
-                state.tasks.forEach(task => {
-                    if (!task.predecessors) return;
-                    
-                    task.predecessors.forEach(pred => {
-                        const predTask = state.tasks.find(t => t.id === pred.taskId);
-                        if (!predTask) return;
-                        
-                        const predIndex = state.tasks.indexOf(predTask);
-                        const taskIndex = state.tasks.indexOf(task);
-                        
-                        const predFinish = predTask.earlyFinish || scheduler.addWorkingDays(predTask.start, predTask.duration);
-                        const taskStart = task.start || task.earlyStart;
-                        
-                        if (!predFinish || !taskStart) return;
-                        
-                        const x1 = ((predFinish - minDate) / (1000 * 60 * 60 * 24)) * dayWidth;
-                        const y1 = 80 + predIndex * 32 + 8;
-                        const x2 = ((taskStart - minDate) / (1000 * 60 * 60 * 24)) * dayWidth;
-                        const y2 = 80 + taskIndex * 32 + 8;
-                        
-                        ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--border');
-                        ctx.lineWidth = 1;
-                        ctx.beginPath();
-                        ctx.moveTo(x1, y1);
-                        ctx.lineTo(x1 + 10, y1);
-                        ctx.lineTo(x1 + 10, y2);
-                        ctx.lineTo(x2 - 5, y2);
-                        ctx.stroke();
-                        
-                        // Arrow head
-                        ctx.beginPath();
-                        ctx.moveTo(x2 - 5, y2 - 3);
-                        ctx.lineTo(x2, y2);
-                        ctx.lineTo(x2 - 5, y2 + 3);
-                        ctx.stroke();
-                    });
-                });
+                return row;
             }
             
-            // Event Handlers
-            toggleTheme() {
-                state.theme = state.theme === 'light' ? 'dark' : 'light';
-                document.documentElement.setAttribute('data-theme', state.theme);
-                localStorage.setItem('theme', state.theme);
-                this.render();
-            }
-            
-            switchTab(tab) {
-                state.activeTab = tab;
-                this.render();
-            }
-            
-            selectTask(taskId, event) {
-                if (event.ctrlKey) {
-                    if (state.selectedTasks.has(taskId)) {
-                        state.selectedTasks.delete(taskId);
-                    } else {
-                        state.selectedTasks.add(taskId);
+            getCellValue(task, columnId) {
+                switch(columnId) {
+                    case 'mode': return task.mode === 'manual' ? '📌' : '⚙️';
+                    case 'id': return task.id;
+                    case 'wbs': return task.wbs || '';
+                    case 'name': return task.name;
+                    case 'duration': return task.duration + 'd';
+                    case 'start': return this.formatDate(task.start);
+                    case 'finish': return this.formatDate(task.finish);
+                    case 'predecessors': return task.predecessors || '';
+                    case 'resources': return task.resources || '';
+                    case 'complete': return (task.percentComplete || 0) + '%';
+                    case 'constraint': return task.constraint || '';
+                    case 'constraintDate': return this.formatDate(task.constraintDate);
+                    case 'baselineStart': {
+                        const baseline = this.app.state.baselines.get(task.id);
+                        return baseline ? this.formatDate(baseline.start) : '';
                     }
-                } else {
-                    state.selectedTasks.clear();
-                    state.selectedTasks.add(taskId);
+                    case 'baselineFinish': {
+                        const baseline = this.app.state.baselines.get(task.id);
+                        return baseline ? this.formatDate(baseline.finish) : '';
+                    }
+                    case 'slack': return task.totalFloat ? task.totalFloat + 'd' : '';
+                    case 'cost': return task.cost ? '$' + task.cost.toLocaleString() : '';
+                    case 'notes': return task.notes || '';
+                    default: return '';
                 }
-                this.render();
             }
             
-            editCell(taskId, field, event) {
-                event.stopPropagation();
-                const cell = event.target;
-                const task = state.tasks.find(t => t.id === taskId);
-                if (!task) return;
+            formatDate(date) {
+                if (!date) return '';
+                const d = new Date(date);
+                const day = String(d.getDate()).padStart(2, '0');
+                const month = String(d.getMonth() + 1).padStart(2, '0');
+                const year = d.getFullYear();
+                return `${day}/${month}/${year}`;
+            }
+            
+            startEdit(cell, task, columnId) {
+                if (cell.classList.contains('editing')) return;
+                
+                const currentValue = this.getCellValue(task, columnId);
+                cell.classList.add('editing');
                 
                 const input = document.createElement('input');
+                input.className = 'inline-edit';
                 input.type = 'text';
-                
-                switch(field) {
-                    case 'name':
-                        input.value = task.name;
-                        break;
-                    case 'duration':
-                        input.value = task.duration + 'd';
-                        break;
-                    case 'start':
-                        input.value = scheduler.formatDate(task.start);
-                        break;
-                    case 'finish':
-                        input.value = scheduler.formatDate(task.earlyFinish);
-                        break;
-                    case 'progress':
-                        input.value = task.percentComplete || 0;
-                        break;
-                }
+                input.value = currentValue;
                 
                 cell.innerHTML = '';
                 cell.appendChild(input);
+                
                 input.focus();
                 input.select();
                 
                 const save = () => {
-                    switch(field) {
-                        case 'name':
-                            task.name = input.value;
-                            break;
-                        case 'duration':
-                            task.duration = scheduler.parseDuration(input.value);
-                            break;
-                        case 'start':
-                            task.start = scheduler.parseDate(input.value);
-                            break;
-                        case 'progress':
-                            task.percentComplete = parseInt(input.value) || 0;
-                            break;
+                    const newValue = input.value;
+                    if (this.validateAndSave(task, columnId, newValue)) {
+                        this.app.saveUndo();
+                        this.app.render();
+                    } else {
+                        // Show error
+                        const error = document.createElement('div');
+                        error.className = 'error-message';
+                        error.textContent = this.getValidationError(columnId, newValue);
+                        cell.appendChild(error);
+                        setTimeout(() => error.remove(), 3000);
                     }
-                    
-                    state.dirty = true;
-                    this.render();
+                };
+                
+                const cancel = () => {
+                    cell.classList.remove('editing');
+                    this.app.render();
                 };
                 
                 input.addEventListener('blur', save);
                 input.addEventListener('keydown', (e) => {
                     if (e.key === 'Enter') save();
-                    if (e.key === 'Escape') this.render();
+                    if (e.key === 'Escape') cancel();
                 });
             }
             
-            newTask() {
-                const newTask = {
-                    id: 'task_' + Date.now(),
-                    wbs: (state.tasks.length + 1).toString(),
-                    name: 'New Task',
-                    duration: 5,
-                    start: new Date(),
-                    percentComplete: 0
-                };
-                
-                state.tasks.push(newTask);
-                state.dirty = true;
-                this.render();
-            }
-            
-            zoomIn() {
-                // Implement zoom in
-                this.showToast('Zoomed in', 'info');
-                this.drawGanttChart();
-            }
-            
-            zoomOut() {
-                // Implement zoom out
-                this.showToast('Zoomed out', 'info');
-                this.drawGanttChart();
-            }
-            
-            fitToScreen() {
-                // Implement fit to screen
-                this.showToast('Fit to screen', 'info');
-                this.drawGanttChart();
-            }
-            
-            importCSV() {
-                const input = document.createElement('input');
-                input.type = 'file';
-                input.accept = '.csv';
-                input.onchange = (e) => {
-                    const file = e.target.files[0];
-                    if (!file) return;
-                    
-                    const reader = new FileReader();
-                    reader.onload = (e) => {
-                        // Parse CSV
-                        const lines = e.target.result.split('\n');
-                        const headers = lines[0].split(',');
-                        
-                        const tasks = [];
-                        for (let i = 1; i < lines.length; i++) {
-                            const values = lines[i].split(',');
-                            if (values.length < 3) continue;
-                            
-                            tasks.push({
-                                id: 'imported_' + i,
-                                wbs: values[0] || i.toString(),
-                                name: values[1] || 'Task ' + i,
-                                duration: parseInt(values[2]) || 5,
-                                start: values[3] ? scheduler.parseDate(values[3]) : new Date(),
-                                percentComplete: parseInt(values[4]) || 0
-                            });
+            validateAndSave(task, columnId, value) {
+                switch(columnId) {
+                    case 'name':
+                        task.name = value;
+                        return true;
+                    case 'duration':
+                        const duration = this.parseDuration(value);
+                        if (duration !== null) {
+                            task.duration = duration;
+                            return true;
                         }
-                        
-                        state.tasks = tasks;
-                        state.dirty = true;
-                        this.render();
-                        this.showToast('Imported ' + tasks.length + ' tasks', 'success');
-                    };
-                    reader.readAsText(file);
-                };
-                input.click();
+                        return false;
+                    case 'start':
+                    case 'finish':
+                    case 'constraintDate':
+                        const date = this.parseDate(value);
+                        if (date) {
+                            task[columnId] = date;
+                            return true;
+                        }
+                        return false;
+                    case 'predecessors':
+                        // Validate format
+                        if (this.validatePredecessors(value)) {
+                            task.predecessors = value;
+                            return true;
+                        }
+                        return false;
+                    case 'complete':
+                        const percent = parseInt(value);
+                        if (!isNaN(percent) && percent >= 0 && percent <= 100) {
+                            task.percentComplete = percent;
+                            return true;
+                        }
+                        return false;
+                    case 'cost':
+                        const cost = parseFloat(value.replace(/[^0-9.-]/g, ''));
+                        if (!isNaN(cost)) {
+                            task.cost = cost;
+                            return true;
+                        }
+                        return false;
+                    default:
+                        task[columnId] = value;
+                        return true;
+                }
             }
             
-            exportPDF() {
-                // Simple PDF export using print
-                window.print();
-                this.showToast('PDF export initiated', 'info');
+            parseDuration(value) {
+                const match = value.match(/^(\d+)([dhw])?$/);
+                if (!match) return null;
+                
+                const num = parseInt(match[1]);
+                const unit = match[2] || 'd';
+                
+                switch(unit) {
+                    case 'h': return num / 8;
+                    case 'w': return num * 5;
+                    default: return num;
+                }
+            }
+            
+            parseDate(value) {
+                const parts = value.split('/');
+                if (parts.length !== 3) return null;
+                
+                const day = parseInt(parts[0]);
+                const month = parseInt(parts[1]) - 1;
+                const year = parseInt(parts[2]);
+                
+                const date = new Date(year, month, day);
+                if (isNaN(date.getTime())) return null;
+                
+                return date;
+            }
+            
+            validatePredecessors(value) {
+                if (!value) return true;
+                const parts = value.split(',');
+                
+                for (const part of parts) {
+                    if (!part.trim().match(/^\d+[A-Z]{2}[+-]?\d*[dhw]?$/i)) {
+                        return false;
+                    }
+                }
+                return true;
+            }
+            
+            getValidationError(columnId, value) {
+                switch(columnId) {
+                    case 'duration':
+                        return 'Duration must be hours or days';
+                    case 'start':
+                    case 'finish':
+                    case 'constraintDate':
+                        return 'Date must be dd/mm/yyyy';
+                    case 'predecessors':
+                        return 'Predecessor format: id+type+lag, e.g., 7fs+2d';
+                    case 'complete':
+                        return 'Percentage must be 0-100';
+                    default:
+                        return 'Invalid value';
+                }
+            }
+            
+            selectRange(toId) {
+                const tasks = this.app.state.tasks;
+                const firstSelected = Array.from(this.app.state.selectedTasks)[0];
+                if (!firstSelected) {
+                    this.app.state.selectedTasks.add(toId);
+                    return;
+                }
+                
+                const fromIndex = tasks.findIndex(t => t.id === firstSelected);
+                const toIndex = tasks.findIndex(t => t.id === toId);
+                
+                const start = Math.min(fromIndex, toIndex);
+                const end = Math.max(fromIndex, toIndex);
+                
+                this.app.state.selectedTasks.clear();
+                for (let i = start; i <= end; i++) {
+                    this.app.state.selectedTasks.add(tasks[i].id);
+                }
             }
         }
         
-        // Initialize app
-        const app = new GanttApp();
-        
-        // Add print styles
-        const printStyle = document.createElement('style');
-        printStyle.textContent = `
-            @media print {
-                .header, .tabs, .toolbar { display: none; }
-                .split-view { display: block; }
-                .split-left { width: 40%; float: left; border: none; }
-                .split-right { width: 60%; float: right; }
-                .split-handle { display: none; }
-                .grid-row:hover { background: none; }
-                * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        // Chart Renderer
+        class ChartRenderer {
+            constructor(app) {
+                this.app = app;
+                this.canvas = document.getElementById('chart-canvas');
+                this.timelineCanvas = document.getElementById('timeline-canvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.timelineCtx = this.timelineCanvas.getContext('2d');
+                
+                this.dayWidth = 30;
+                this.rowHeight = 32;
+                this.timelineHeight = 60;
+                this.labelPadding = 8;
+                
+                this.setupEventHandlers();
             }
-        `;
-        document.head.appendChild(printStyle);
-    </script>
-</body>
-</html>
+            
+            setupEventHandlers() {
+                this.canvas.addEventListener('click', this.handleClick.bind(this));
+                this.canvas.addEventListener('mousedown', this.handleMouseDown.bind(this));
+                this.canvas.addEventListener('mousemove', this.handleMouseMove.bind(this));
+                this.canvas.addEventListener('mouseup', this.handleMouseUp.bind(this));
+                this.canvas.addEventListener('contextmenu', this.handleContextMenu.bind(this));
+                this.canvas.addEventListener('wheel', this.handleWheel.bind(this));
+            }
+            
+            render() {
+                this.resize();
+                this.clear();
+                
+                if (this.app.state.tasks.length === 0) {
+                    this.renderEmptyState();
+                    return;
+                }
+                
+                const { startDate, endDate } = this.calculateDateRange();
+                
+                this.renderTimeline(startDate, endDate);
+                this.renderGrid(startDate, endDate);
+                this.renderTasks(startDate, endDate);
+                this.renderLinks();
+                this.renderToday(startDate, endDate);
+            }
+            
+            resize() {
+                const container = document.getElementById('chart-container');
+                const rect = container.getBoundingClientRect();
+                
+                this.canvas.width = Math.max(rect.width, this.calculateMinWidth());
+                this.canvas.height = Math.max(600, this.app.state.tasks.length * this.rowHeight + 100);
+                
+                this.timelineCanvas.width = this.canvas.width;
+                this.timelineCanvas.height = this.timelineHeight;
+            }
+            
+            calculateMinWidth() {
+                const { startDate, endDate } = this.calculateDateRange();
+                const days = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
+                return days * this.dayWidth * (this.app.state.zoom / 100);
+            }
+            
+            calculateDateRange() {
+                const tasks = this.app.state.tasks;
+                if (tasks.length === 0) {
+                    const today = new Date();
+                    return {
+                        startDate: new Date(today.getFullYear(), today.getMonth(), 1),
+                        endDate: new Date(today.getFullYear(), today.getMonth() + 1, 0)
+                    };
+                }
+                
+                const dates = tasks.flatMap(t => [t.start, t.finish]).filter(d => d);
+                const minDate = new Date(Math.min(...dates.map(d => d.getTime())));
+                const maxDate = new Date(Math.max(...dates.map(d => d.getTime())));
+                
+                // Add padding
+                minDate.setDate(minDate.getDate() - 7);
+                maxDate.setDate(maxDate.getDate() + 30);
+                
+                return { startDate: minDate, endDate: maxDate };
+            }
+            
+            clear() {
+                this.ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--surface');
+                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+                
+                this.timelineCtx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--bg');
+                this.timelineCtx.fillRect(0, 0, this.timelineCanvas.width, this.timelineCanvas.height);
+            }
+            
+            renderEmptyState() {
+                this.ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--text-muted');
+                this.ctx.font = '14px system-ui';
+                this.ctx.textAlign = 'center';
+                this.ctx.fillText('No tasks to display', this.canvas.width / 2, this.canvas.height / 2);
+            }
+            
+            renderTimeline(startDate, endDate) {
+                const days = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
+                const dayWidth = this.dayWidth * (this.app.state.zoom / 100);
+                
+                // Month tier
+                this.timelineCtx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--text');
+                this.timelineCtx.font = '12px system-ui';
+                
+                let lastMonth = -1;
+                let lastYear = -1;
+                const current = new Date(startDate);
+                
+                for (let i = 0; i < days; i++) {
+                    const x = i * dayWidth;
+                    
+                    // Year label
+                    if (current.getFullYear() !== lastYear) {
+                        lastYear = current.getFullYear();
+                        this.timelineCtx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--text');
+                        this.timelineCtx.font = 'bold 12px system-ui';
+                        this.timelineCtx.fillText(lastYear.toString(), x + 4, 15);
+                    }
+                    
+                    // Month label
+                    if (current.getMonth() !== lastMonth) {
+                        lastMonth = current.getMonth();
+                        const monthName = current.toLocaleDateString('en-AU', { month: 'short' });
+                        this.timelineCtx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--text');
+                        this.timelineCtx.font = '11px system-ui';
+                        this.timelineCtx.fillText(monthName, x + 4, 30);
+                    }
+                    
+                    // Day label
+                    if (dayWidth > 20) {
+                        this.timelineCtx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--text-muted');
+                        this.timelineCtx.font = '10px system-ui';
+                        this.timelineCtx.fillText(current.getDate().toString(), x + 2, 50);
+                    }
+                    
+                    current.setDate(current.getDate() + 1);
+                }
+            }
+            
+            renderGrid(startDate, endDate) {
+                const days = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
+                const dayWidth = this.dayWidth * (this.app.state.zoom / 100);
+                
+                const current = new Date(startDate);
+                
+                for (let i = 0; i < days; i++) {
+                    const x = i * dayWidth;
+                    const isWeekend = current.getDay() === 0 || current.getDay() === 6;
+                    const isHoliday = this.app.state.holidays.some(h => 
+                        h.date === this.formatDateKey(current));
+                    
+                    // Weekend/holiday shading
+                    if (this.app.state.showNonWorking && (isWeekend || isHoliday)) {
+                        this.ctx.fillStyle = isHoliday ? 
+                            getComputedStyle(document.documentElement).getPropertyValue('--non-working') :
+                            getComputedStyle(document.documentElement).getPropertyValue('--weekend');
+                        this.ctx.fillRect(x, 0, dayWidth, this.canvas.height);
+                    }
+                    
+                    // Vertical grid lines
+                    this.ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--border');
+                    this.ctx.lineWidth = 0.5;
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(x, 0);
+                    this.ctx.lineTo(x, this.canvas.height);
+                    this.ctx.stroke();
+                    
+                    current.setDate(current.getDate() + 1);
+                }
+                
+                // Horizontal grid lines
+                for (let i = 0; i <= this.app.state.tasks.length; i++) {
+                    const y = i * this.rowHeight;
+                    this.ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--border');
+                    this.ctx.lineWidth = 0.5;
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(0, y);
+                    this.ctx.lineTo(this.canvas.width, y);
+                    this.ctx.stroke();
+                }
+            }
+            
+            renderTasks(startDate, endDate) {
+                const dayWidth = this.dayWidth * (this.app.state.zoom / 100);
+                
+                this.app.state.tasks.forEach((task, index) => {
+                    const y = index * this.rowHeight + this.rowHeight / 2;
+                    
+                    if (!task.start) return;
+                    
+                    const x = this.dateToX(task.start, startDate, dayWidth);
+                    const width = task.isMilestone ? 0 : 
+                        this.dateToX(task.finish || task.start, startDate, dayWidth) - x;
+                    
+                    // Baseline bar
+                    if (this.app.state.showBaselines) {
+                        const baseline = this.app.state.baselines.get(task.id);
+                        if (baseline && baseline.start && baseline.finish) {
+                            const baseX = this.dateToX(baseline.start, startDate, dayWidth);
+                            const baseWidth = this.dateToX(baseline.finish, startDate, dayWidth) - baseX;
+                            
+                            this.ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--baseline');
+                            this.ctx.fillRect(baseX, y + 4, baseWidth, 4);
+                        }
+                    }
+                    
+                    // Task bar
+                    if (task.isMilestone) {
+                        // Diamond for milestone
+                        this.ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--primary');
+                        this.ctx.beginPath();
+                        this.ctx.moveTo(x, y - 8);
+                        this.ctx.lineTo(x + 8, y);
+                        this.ctx.lineTo(x, y + 8);
+                        this.ctx.lineTo(x - 8, y);
+                        this.ctx.closePath();
+                        this.ctx.fill();
+                    } else if (task.isSummary) {
+                        // Summary bar
+                        this.ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--text');
+                        this.ctx.fillRect(x, y - 6, width, 12);
+                        
+                        // Brackets
+                        this.ctx.fillRect(x, y - 10, 4, 20);
+                        this.ctx.fillRect(x + width - 4, y - 10, 4, 20);
+                    } else {
+                        // Regular task bar
+                        const barHeight = 20;
+                        const barY = y - barHeight / 2;
+                        
+                        // Bar background
+                        this.ctx.fillStyle = task.isCritical && this.app.state.showCritical ? 
+                            getComputedStyle(document.documentElement).getPropertyValue('--critical') :
+                            getComputedStyle(document.documentElement).getPropertyValue('--primary');
+                        
+                        this.roundRect(x, barY, width, barHeight, 4);
+                        
+                        // Progress fill
+                        if (task.percentComplete > 0) {
+                            this.ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--success');
+                            const progressWidth = width * (task.percentComplete / 100);
+                            this.roundRect(x, barY, progressWidth, barHeight, 4);
+                        }
+                    }
+                    
+                    // Constraint icon
+                    if (task.constraint && task.constraint !== 'ASAP') {
+                        this.ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--constraint-icon');
+                        this.ctx.font = '12px system-ui';
+                        this.ctx.fillText('⚡', x - 15, y + 4);
+                    }
+                    
+                    // Task label
+                    this.ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--text');
+                    this.ctx.font = '12px system-ui';
+                    this.ctx.textAlign = 'left';
+                    
+                    const labelX = task.isMilestone ? x + 12 : x + width + this.labelPadding;
+                    this.ctx.fillText(task.name, labelX, y + 4);
+                    
+                    // Secondary label (% complete)
+                    if (task.percentComplete > 0 && !task.isMilestone && dayWidth > 20) {
+                        this.ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--text-muted');
+                        this.ctx.font = '10px system-ui';
+                        this.ctx.fillText(`${task.percentComplete}%`, labelX, y + 16);
+                    }
+                });
+            }
+            
+            renderLinks() {
+                this.ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--link');
+                this.ctx.lineWidth = 1;
+                this.ctx.setLineDash([]);
+                
+                const { startDate } = this.calculateDateRange();
+                const dayWidth = this.dayWidth * (this.app.state.zoom / 100);
+                
+                this.app.state.tasks.forEach((task, index) => {
+                    if (!task.predecessors) return;
+                    
+                    const deps = this.app.scheduler.parsePredecessors(task.predecessors);
+                    deps.
